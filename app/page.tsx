@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { priorityReason } from '../lib/priority'
 import { getTripsWithPriority } from '../lib/trips'
 
+export const dynamic = 'force-dynamic'
+
 export default async function Home() {
   const trips = (await getTripsWithPriority()).sort((a, b) => b.priority_score - a.priority_score)
   return <>
