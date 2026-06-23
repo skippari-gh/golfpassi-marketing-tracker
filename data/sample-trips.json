@@ -1,0 +1,6 @@
+[
+  {"id":"rio-real","name":"Rio Real Golf & Hotel 14 vrk","country":"Espanja","start_date":"2026-10-21","end_date":"2026-11-04","status":"myynnissä","last_marketed_at":null,"has_newsletter":false,"has_social":false,"priority_score":105},
+  {"id":"bogogno","name":"Bogogno Golf Resort","country":"Italia","start_date":"2026-09-27","end_date":"2026-10-03","status":"myynnissä","last_marketed_at":"2026-06-01","has_newsletter":true,"has_social":false,"priority_score":80},
+  {"id":"la-finca","name":"Golf & Fysiikka La Finca","country":"Espanja","start_date":"2026-11-29","end_date":"2026-12-06","status":"myynnissä","last_marketed_at":"2026-06-10","has_newsletter":false,"has_social":true,"priority_score":75},
+  {"id":"vietnam","name":"Meliá Ho Tram Beach Resort & Wafaifo Resort","country":"Vietnam","start_date":"2027-01-05","end_date":"2027-01-18","status":"myynnissä","last_marketed_at":"2026-06-18","has_newsletter":true,"has_social":true,"priority_score":30}
+]
