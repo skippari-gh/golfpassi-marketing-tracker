@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { getTripsWithPriority } from '../../lib/trips'
 
+export const dynamic = 'force-dynamic'
+
 export default async function TripsPage() {
   const trips = (await getTripsWithPriority()).sort((a, b) => a.start_date.localeCompare(b.start_date))
   return <main className="container">
