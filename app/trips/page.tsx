@@ -7,12 +7,8 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-export default async function TripPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const { id } = await params
+export default async function TripPage(props: any) {
+  const { id } = await props.params
   const trip = await getTripWithPriority(id)
 
   if (!trip) {
@@ -38,26 +34,11 @@ export default async function TripPage({
 
       <article className="card">
         <span className="score">Prioriteetti {trip.priority_score}</span>
-
         <h1>{trip.name}</h1>
-
-        <p>
-          {trip.country} · {trip.start_date}–{trip.end_date}
-        </p>
-
-        <p>
-          <strong>Viimeksi markkinoitu:</strong>{' '}
-          {trip.last_marketed_at || 'ei koskaan'}
-        </p>
-
-        <p>
-          <strong>Käytetyt kanavat:</strong>{' '}
-          {trip.channels_used.join(', ') || 'ei vielä yhtään'}
-        </p>
-
-        <p className="reason">
-          <strong>Suositus:</strong> {priorityReason(trip)}
-        </p>
+        <p>{trip.country} · {trip.start_date}–{trip.end_date}</p>
+        <p><strong>Viimeksi markkinoitu:</strong> {trip.last_marketed_at || 'ei koskaan'}</p>
+        <p><strong>Käytetyt kanavat:</strong> {trip.channels_used.join(', ') || 'ei vielä yhtään'}</p>
+        <p className="reason"><strong>Suositus:</strong> {priorityReason(trip)}</p>
       </article>
 
       <h2 style={{ marginTop: '32px' }}>Markkinointihistoria</h2>
@@ -71,7 +52,6 @@ export default async function TripPage({
             <th>Huomiot</th>
           </tr>
         </thead>
-
         <tbody>
           {actions.length === 0 ? (
             <tr>
