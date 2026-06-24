@@ -85,3 +85,14 @@ export async function getChannels() {
   if (error) throw new Error(error.message)
   return data || []
 }
+export async function getMarketingActionsForTrip(tripId: string) {
+  const { data, error } = await supabase
+    .from('marketing_actions')
+    .select('*, channels(name)')
+    .eq('trip_id', tripId)
+    .order('action_date', { ascending: false })
+
+  if (error) throw new Error(error.message)
+
+  return data || []
+}
