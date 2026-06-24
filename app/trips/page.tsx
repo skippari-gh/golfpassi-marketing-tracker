@@ -1,89 +1,92 @@
 import Link from 'next/link'
-import { getTripsWithPriority } from '../../lib/trips'
+import { priorityReason } from '../../../lib/priority'
+import {
+  getTripWithPriority,
+  getMarketingActionsForTrip,
+} from '../../../lib/trips'
 
 export const dynamic = 'force-dynamic'
 
-export default async function TripsPage({
-  searchParams,
+export default async function TripPage({
+  params,
 }: {
-  searchParams: { country?: string; type?: string; month?: string }
+  params: Promise<{ id: string }>
 }) {
-  const trips = (await getTripsWithPriority()).sort((a, b) =>
-    a.start_date.localeCompare(b.start_date)
-  )
+  const { id } = await params
+  const trip = await getTripWithPriority(id)
 
-  const countries = Array.from(new Set(trips.map((t) => t.country))).sort()
-  const types = Array.from(new Set(trips.map((t) => t.trip_type))).sort()
-  const months = Array.from(
-    new Set(trips.map((t) => t.start_date.slice(0, 7)))
-  ).sort()
+  if (!trip) {
+    return (
+      <main className="container">
+        <p>Matkaa ei löytynyt.</p>
+        <Link className="button" href="/trips">
+          Takaisin matkoihin
+        </Link>
+      </main>
+    )
+  }
 
-  const filtered = trips.filter((t) => {
-    if (searchParams.country && t.country !== searchParams.country) return false
-    if (searchParams.type && t.trip_type !== searchParams.type) return false
-    if (searchParams.month && !t.start_date.startsWith(searchParams.month)) return false
-    return true
-  })
+  const actions = await getMarketingActionsForTrip(id)
 
   return (
     <main className="container">
       <nav className="nav">
         <Link href="/">Nosta seuraavaksi</Link>
         <Link href="/trips">Matkat</Link>
-        <Link href="/actions/new">Lisää merkintä</Link>
+        <Link href={`/actions/new?trip=${trip.id}`}>Lisää merkintä</Link>
       </nav>
 
-      <h1>Matkat</h1>
-      <p>Matkoja: {filtered.length}</p>
+      <article className="card">
+        <span className="score">Prioriteetti {trip.priority_score}</span>
 
-      <form className="filters">
-        <select name="country" defaultValue={searchParams.country || ''}>
-          <option value="">Kaikki maat</option>
-          {countries.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+        <h1>{trip.name}</h1>
 
-        <select name="type" defaultValue={searchParams.type || ''}>
-          <option value="">Kaikki tyypit</option>
-          {types.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
+        <p>
+          {trip.country} · {trip.start_date}–{trip.end_date}
+        </p>
 
-        <select name="month" defaultValue={searchParams.month || ''}>
-          <option value="">Kaikki kuukaudet</option>
-          {months.map((m) => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
+        <p>
+          <strong>Viimeksi markkinoitu:</strong>{' '}
+          {trip.last_marketed_at || 'ei koskaan'}
+        </p>
 
-        <button type="submit">Suodata</button>
-        <Link className="button secondary" href="/trips">Tyhjennä</Link>
-      </form>
+        <p>
+          <strong>Käytetyt kanavat:</strong>{' '}
+          {trip.channels_used.join(', ') || 'ei vielä yhtään'}
+        </p>
+
+        <p className="reason">
+          <strong>Suositus:</strong> {priorityReason(trip)}
+        </p>
+      </article>
+
+      <h2 style={{ marginTop: '32px' }}>Markkinointihistoria</h2>
 
       <table>
         <thead>
           <tr>
-            <th>Matka</th>
-            <th>Maa</th>
-            <th>Tyyppi</th>
-            <th>Päivämäärät</th>
-            <th>Viimeksi</th>
-            <th>Prioriteetti</th>
+            <th>Päivä</th>
+            <th>Kanava</th>
+            <th>Otsikko</th>
+            <th>Huomiot</th>
           </tr>
         </thead>
+
         <tbody>
-          {filtered.map((t) => (
-            <tr key={t.id}>
-              <td><Link href={`/trips/${t.id}`}>{t.name}</Link></td>
-              <td>{t.country}</td>
-              <td>{t.trip_type}</td>
-              <td>{t.start_date}–{t.end_date}</td>
-              <td>{t.last_marketed_at || 'ei koskaan'}</td>
-              <td>{t.priority_score}</td>
+          {actions.length === 0 ? (
+            <tr>
+              <td colSpan={4}>Ei merkintöjä</td>
             </tr>
-          ))}
+          ) : (
+            actions.map((action: any) => (
+              <tr key={action.id}>
+                <td>{action.action_date}</td>
+                <td>{action.channels?.name || '-'}</td>
+                <td>{action.title || '-'}</td>
+                <td>{action.notes || '-'}</td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </main>
