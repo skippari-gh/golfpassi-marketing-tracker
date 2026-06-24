@@ -1,72 +1,57 @@
 import Link from 'next/link'
-import { priorityReason } from '../../../lib/priority'
-import {
-  getTripWithPriority,
-  getMarketingActionsForTrip,
-} from '../../../lib/trips'
+import { getTripsWithPriority } from '../../lib/trips'
 
 export const dynamic = 'force-dynamic'
 
-export default async function TripPage(props: any) {
-  const { id } = await props.params
-  const trip = await getTripWithPriority(id)
-
-  if (!trip) {
-    return (
-      <main className="container">
-        <p>Matkaa ei löytynyt.</p>
-        <Link className="button" href="/trips">
-          Takaisin matkoihin
-        </Link>
-      </main>
-    )
-  }
-
-  const actions = await getMarketingActionsForTrip(id)
+export default async function TripsPage() {
+  const trips = (await getTripsWithPriority()).sort((a, b) =>
+    a.start_date.localeCompare(b.start_date)
+  )
 
   return (
     <main className="container">
       <nav className="nav">
         <Link href="/">Nosta seuraavaksi</Link>
         <Link href="/trips">Matkat</Link>
-        <Link href={`/actions/new?trip=${trip.id}`}>Lisää merkintä</Link>
+        <Link href="/actions/new">Lisää merkintä</Link>
       </nav>
 
-      <article className="card">
-        <span className="score">Prioriteetti {trip.priority_score}</span>
-        <h1>{trip.name}</h1>
-        <p>{trip.country} · {trip.start_date}–{trip.end_date}</p>
-        <p><strong>Viimeksi markkinoitu:</strong> {trip.last_marketed_at || 'ei koskaan'}</p>
-        <p><strong>Käytetyt kanavat:</strong> {trip.channels_used.join(', ') || 'ei vielä yhtään'}</p>
-        <p className="reason"><strong>Suositus:</strong> {priorityReason(trip)}</p>
-      </article>
-
-      <h2 style={{ marginTop: '32px' }}>Markkinointihistoria</h2>
+      <h1>Matkat</h1>
 
       <table>
         <thead>
           <tr>
-            <th>Päivä</th>
-            <th>Kanava</th>
-            <th>Otsikko</th>
-            <th>Huomiot</th>
+            <th>Matka</th>
+            <th>Maa</th>
+            <th>Päivämäärät</th>
+            <th>Status</th>
+            <th>Viimeksi</th>
+            <th>Prioriteetti</th>
           </tr>
         </thead>
+
         <tbody>
-          {actions.length === 0 ? (
-            <tr>
-              <td colSpan={4}>Ei merkintöjä</td>
+          {trips.map((trip) => (
+            <tr key={trip.id}>
+              <td>
+                <Link href={`/trips/${trip.id}`}>
+                  {trip.name}
+                </Link>
+              </td>
+
+              <td>{trip.country}</td>
+
+              <td>
+                {trip.start_date}–{trip.end_date}
+              </td>
+
+              <td>{trip.status}</td>
+
+              <td>{trip.last_marketed_at || 'ei koskaan'}</td>
+
+              <td>{trip.priority_score}</td>
             </tr>
-          ) : (
-            actions.map((action: any) => (
-              <tr key={action.id}>
-                <td>{action.action_date}</td>
-                <td>{action.channels?.name || '-'}</td>
-                <td>{action.title || '-'}</td>
-                <td>{action.notes || '-'}</td>
-              </tr>
-            ))
-          )}
+          ))}
         </tbody>
       </table>
     </main>
