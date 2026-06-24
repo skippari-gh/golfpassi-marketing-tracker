@@ -10,19 +10,23 @@ export const dynamic = 'force-dynamic'
 export default async function TripPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
-  const trip = await getTripWithPriority(params.id)
+  const { id } = await params
+  const trip = await getTripWithPriority(id)
 
   if (!trip) {
     return (
       <main className="container">
         <p>Matkaa ei löytynyt.</p>
+        <Link className="button" href="/trips">
+          Takaisin matkoihin
+        </Link>
       </main>
     )
   }
 
-  const actions = await getMarketingActionsForTrip(params.id)
+  const actions = await getMarketingActionsForTrip(id)
 
   return (
     <main className="container">
