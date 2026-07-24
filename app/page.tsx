@@ -682,6 +682,142 @@ export default async function Home({
           line-height: 1.45;
         }
 
+        .priority-info {
+          position: relative;
+          flex: 0 0 auto;
+        }
+
+        .priority-info-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 31px;
+          height: 31px;
+          border: 1px solid #b9d8ea;
+          border-radius: 50%;
+          background: var(--gp-light-blue);
+          color: var(--gp-blue);
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 18px;
+          font-weight: 800;
+          font-style: italic;
+          line-height: 1;
+          list-style: none;
+          cursor: pointer;
+          user-select: none;
+          transition:
+            border-color 140ms ease,
+            background 140ms ease,
+            color 140ms ease,
+            transform 140ms ease;
+        }
+
+        .priority-info-button::-webkit-details-marker {
+          display: none;
+        }
+
+        .priority-info-button:hover {
+          border-color: var(--gp-blue);
+          background: var(--gp-blue);
+          color: #ffffff;
+          transform: translateY(-1px);
+        }
+
+        .priority-info-button:focus-visible {
+          outline: 3px solid rgba(255, 130, 0, 0.35);
+          outline-offset: 3px;
+        }
+
+        .priority-info[open] .priority-info-button {
+          border-color: var(--gp-navy);
+          background: var(--gp-navy);
+          color: #ffffff;
+        }
+
+        .priority-info-popover {
+          position: absolute;
+          top: calc(100% + 10px);
+          right: 0;
+          z-index: 100;
+          width: min(310px, calc(100vw - 64px));
+          padding: 16px;
+          border: 1px solid #c9dce7;
+          border-radius: 11px;
+          background: #ffffff;
+          color: var(--gp-text);
+          box-shadow:
+            0 14px 36px
+            rgba(0, 60, 112, 0.2);
+        }
+
+        .priority-info-popover::before {
+          position: absolute;
+          top: -7px;
+          right: 9px;
+          width: 12px;
+          height: 12px;
+          border-top: 1px solid #c9dce7;
+          border-left: 1px solid #c9dce7;
+          background: #ffffff;
+          content: '';
+          transform: rotate(45deg);
+        }
+
+        .priority-info-popover h3 {
+          margin: 0;
+          color: var(--gp-navy);
+          font-size: 15px;
+          font-weight: 850;
+          line-height: 1.3;
+        }
+
+        .priority-info-intro {
+          margin: 7px 0 13px;
+          color: var(--gp-muted);
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .priority-info-list {
+          display: grid;
+          gap: 7px;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+
+        .priority-info-list li {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 12px;
+          align-items: start;
+          padding: 7px 0;
+          border-bottom: 1px solid #edf1f4;
+          color: #435a6b;
+          font-size: 11px;
+          line-height: 1.4;
+        }
+
+        .priority-info-list li:last-child {
+          border-bottom: 0;
+        }
+
+        .priority-info-points {
+          color: var(--gp-navy);
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .priority-info-note {
+          margin: 12px 0 0;
+          padding: 9px 10px;
+          border-left: 3px solid var(--gp-orange);
+          background: #fff8ef;
+          color: #536674;
+          font-size: 11px;
+          line-height: 1.45;
+        }
+
         .button {
           display: inline-flex;
           align-items: center;
@@ -1223,6 +1359,10 @@ export default async function Home({
             flex-direction: column;
           }
 
+          .priority-panel-heading {
+            flex-direction: row;
+          }
+
           .calendar-row {
             grid-template-columns: 1fr;
             gap: 6px;
@@ -1500,7 +1640,7 @@ export default async function Home({
 
           <section className="panel">
             <div className="panel-inner">
-              <div className="panel-heading">
+              <div className="panel-heading priority-panel-heading">
                 <div>
                   <span className="panel-overline">
                     Seuraavat nostot
@@ -1515,6 +1655,130 @@ export default async function Home({
                     tarvitsevat matkat.
                   </p>
                 </div>
+
+                <details className="priority-info">
+                  <summary
+                    className="priority-info-button"
+                    aria-label="Näytä pisteytyksen perusteet"
+                    title="Miten pisteet lasketaan?"
+                  >
+                    i
+                  </summary>
+
+                  <div className="priority-info-popover">
+                    <h3>
+                      Miten pisteet lasketaan?
+                    </h3>
+
+                    <p className="priority-info-intro">
+                      Lista näyttää 10 aktiivista tulevaa
+                      matkaa, joilla on korkein pistemäärä.
+                      Mitä suurempi pistemäärä on, sitä
+                      enemmän matka tarvitsee markkinointia.
+                    </p>
+
+                    <ul className="priority-info-list">
+                      <li>
+                        <span>
+                          Matkaa ei ole markkinoitu koskaan
+                        </span>
+                        <span className="priority-info-points">
+                          +60
+                        </span>
+                      </li>
+
+                      <li>
+                        <span>
+                          Edellisestä nostosta vähintään
+                          30 päivää
+                        </span>
+                        <span className="priority-info-points">
+                          +50
+                        </span>
+                      </li>
+
+                      <li>
+                        <span>
+                          Edellisestä nostosta 21–29 päivää
+                        </span>
+                        <span className="priority-info-points">
+                          +35
+                        </span>
+                      </li>
+
+                      <li>
+                        <span>
+                          Edellisestä nostosta 14–20 päivää
+                        </span>
+                        <span className="priority-info-points">
+                          +20
+                        </span>
+                      </li>
+
+                      <li>
+                        <span>
+                          Lähtöön 0–30 päivää
+                        </span>
+                        <span className="priority-info-points">
+                          +50
+                        </span>
+                      </li>
+
+                      <li>
+                        <span>
+                          Lähtöön 31–60 päivää
+                        </span>
+                        <span className="priority-info-points">
+                          +35
+                        </span>
+                      </li>
+
+                      <li>
+                        <span>
+                          Lähtöön 61–90 päivää
+                        </span>
+                        <span className="priority-info-points">
+                          +25
+                        </span>
+                      </li>
+
+                      <li>
+                        <span>
+                          Matkaa ei ole ollut uutiskirjeessä
+                        </span>
+                        <span className="priority-info-points">
+                          +25
+                        </span>
+                      </li>
+
+                      <li>
+                        <span>
+                          Matkaa ei ole ollut somessa
+                        </span>
+                        <span className="priority-info-points">
+                          +20
+                        </span>
+                      </li>
+
+                      <li>
+                        <span>
+                          Matkaa on markkinoitu viimeisen
+                          7 päivän aikana
+                        </span>
+                        <span className="priority-info-points">
+                          −50
+                        </span>
+                      </li>
+                    </ul>
+
+                    <p className="priority-info-note">
+                      Jo alkanut matka saa −1000 pistettä ja
+                      passiivinen matka −500 pistettä. Ne eivät
+                      näy tässä listassa, koska lista sisältää
+                      vain aktiiviset tulevat matkat.
+                    </p>
+                  </div>
+                </details>
               </div>
 
               {priorityTrips.length === 0 ? (
