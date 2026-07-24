@@ -3,10 +3,27 @@ import { getTripsWithPriority } from '../../lib/trips'
 
 export const dynamic = 'force-dynamic'
 
-export default async function TripsPage() {
-  const trips = (await getTripsWithPriority()).sort((a, b) =>
-    a.start_date.localeCompare(b.start_date)
-  )
+type TripsPageProps = {
+  searchParams?: Promise<{
+    q?: string
+  }>
+}
+
+export default async function TripsPage({
+  searchParams,
+}: TripsPageProps) {
+  const params = await searchParams
+  const search = params?.q?.trim().toLowerCase() || ''
+
+  const trips = (await getTripsWithPriority())
+    .filter((trip) => {
+      if (!search) return true
+
+      return `${trip.name} ${trip.country}`
+        .toLowerCase()
+        .includes(search)
+    })
+    .sort((a, b) => a.start_date.localeCompare(b.start_date))
 
   return (
     <main className="container">
@@ -17,6 +34,27 @@ export default async function TripsPage() {
       </nav>
 
       <h1>Matkat</h1>
+
+      <form className="search-form" method="get">
+        <input
+          type="search"
+          name="q"
+          placeholder="Hae matkaa tai maata..."
+          defaultValue={params?.q || ''}
+        />
+
+        <button type="submit">Hae</button>
+
+        {search && (
+          <Link href="/trips" className="button secondary">
+            Tyhjennä
+          </Link>
+        )}
+      </form>
+
+      <p className="search-result-count">
+        Näytetään {trips.length} matkaa
+      </p>
 
       <table>
         <thead>
@@ -52,6 +90,12 @@ export default async function TripsPage() {
               <td>{trip.priority_score}</td>
             </tr>
           ))}
+
+          {trips.length === 0 && (
+            <tr>
+              <td colSpan={6}>Hakua vastaavia matkoja ei löytynyt.</td>
+            </tr>
+          )}
         </tbody>
       </table>
     </main>
