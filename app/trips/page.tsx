@@ -15,16 +15,17 @@ type ParsedDate = {
   year: number
 }
 
-function parseDate(value?: string | null): ParsedDate | null {
+type TripItem = Awaited<
+  ReturnType<typeof getTripsWithPriority>
+>[number]
+
+function parseDate(
+  value?: string | null
+): ParsedDate | null {
   if (!value) {
     return null
   }
 
-  /*
-   * Toimii sekä päivämäärälle
-   * 2026-08-02 että aikaleimalle
-   * 2026-08-02T10:30:00.000Z.
-   */
   const match = value.match(
     /^(\d{4})-(\d{2})-(\d{2})/
   )
@@ -40,7 +41,9 @@ function parseDate(value?: string | null): ParsedDate | null {
   }
 }
 
-function formatDate(value?: string | null) {
+function formatDate(
+  value?: string | null
+) {
   const date = parseDate(value)
 
   if (!date) {
@@ -61,10 +64,6 @@ function formatDateRange(
     return `${startValue}–${endValue}`
   }
 
-  /*
-   * Sama päivä:
-   * 2.8.2026
-   */
   if (
     start.year === end.year &&
     start.month === end.month &&
@@ -73,10 +72,6 @@ function formatDateRange(
     return `${start.day}.${start.month}.${start.year}`
   }
 
-  /*
-   * Sama kuukausi:
-   * 2.–5.8.2026
-   */
   if (
     start.year === end.year &&
     start.month === end.month
@@ -84,19 +79,106 @@ function formatDateRange(
     return `${start.day}.–${end.day}.${end.month}.${end.year}`
   }
 
-  /*
-   * Sama vuosi:
-   * 29.10.–5.11.2026
-   */
   if (start.year === end.year) {
     return `${start.day}.${start.month}.–${end.day}.${end.month}.${end.year}`
   }
 
-  /*
-   * Eri vuodet:
-   * 29.12.2026–5.1.2027
-   */
   return `${start.day}.${start.month}.${start.year}–${end.day}.${end.month}.${end.year}`
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/&/g, ' ja ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function getTripDuplicateKey(
+  trip: TripItem
+) {
+  return [
+    normalizeText(trip.name),
+    normalizeText(trip.country),
+    trip.start_date.slice(0, 10),
+    trip.end_date.slice(0, 10),
+  ].join('|')
+}
+
+function getTripDataScore(
+  trip: TripItem
+) {
+  let score = 0
+
+  /*
+   * Duplikaateista säilytetään ensisijaisesti
+   * rivi, johon on jo liitetty markkinointitietoja.
+   */
+  if (trip.last_marketed_at) {
+    score += 100
+  }
+
+  score += trip.channels_used.length * 10
+
+  if (trip.has_newsletter) {
+    score += 5
+  }
+
+  if (trip.has_social) {
+    score += 5
+  }
+
+  if (trip.url) {
+    score += 1
+  }
+
+  return score
+}
+
+function removeDuplicateTrips(
+  trips: TripItem[]
+) {
+  const uniqueTrips = new Map<
+    string,
+    TripItem
+  >()
+
+  for (const trip of trips) {
+    const duplicateKey =
+      getTripDuplicateKey(trip)
+
+    const existingTrip =
+      uniqueTrips.get(duplicateKey)
+
+    if (!existingTrip) {
+      uniqueTrips.set(
+        duplicateKey,
+        trip
+      )
+
+      continue
+    }
+
+    const existingScore =
+      getTripDataScore(existingTrip)
+
+    const newScore =
+      getTripDataScore(trip)
+
+    if (newScore > existingScore) {
+      uniqueTrips.set(
+        duplicateKey,
+        trip
+      )
+    }
+  }
+
+  return Array.from(
+    uniqueTrips.values()
+  )
 }
 
 export default async function TripsPage({
@@ -105,21 +187,50 @@ export default async function TripsPage({
   const params = await searchParams
 
   const search =
-    params?.q?.trim().toLowerCase() || ''
+    normalizeText(
+      params?.q?.trim() || ''
+    )
 
-  const trips = (await getTripsWithPriority())
+  const allTrips =
+    await getTripsWithPriority()
+
+  const uniqueTrips =
+    removeDuplicateTrips(allTrips)
+
+  const trips = uniqueTrips
     .filter((trip) => {
       if (!search) {
         return true
       }
 
-      return `${trip.name} ${trip.country}`
-        .toLowerCase()
-        .includes(search)
+      const searchableText =
+        normalizeText(
+          `${trip.name} ${trip.country}`
+        )
+
+      return searchableText.includes(
+        search
+      )
     })
-    .sort((a, b) =>
-      a.start_date.localeCompare(b.start_date)
-    )
+    .sort((a, b) => {
+      const dateComparison =
+        a.start_date.localeCompare(
+          b.start_date
+        )
+
+      if (dateComparison !== 0) {
+        return dateComparison
+      }
+
+      return a.name.localeCompare(
+        b.name,
+        'fi'
+      )
+    })
+
+  const hiddenDuplicateCount =
+    allTrips.length -
+    uniqueTrips.length
 
   return (
     <main className="container">
@@ -166,6 +277,15 @@ export default async function TripsPage({
 
       <p className="search-result-count">
         Näytetään {trips.length} matkaa
+
+        {!search &&
+          hiddenDuplicateCount > 0 && (
+            <>
+              {' '}
+              · {hiddenDuplicateCount}{' '}
+              tuplaa piilotettu
+            </>
+          )}
       </p>
 
       <table>
@@ -215,11 +335,9 @@ export default async function TripsPage({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {trip.last_marketed_at
-                  ? formatDate(
-                      trip.last_marketed_at
-                    )
-                  : 'ei koskaan'}
+                {formatDate(
+                  trip.last_marketed_at
+                )}
               </td>
 
               <td>
