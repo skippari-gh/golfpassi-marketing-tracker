@@ -113,10 +113,6 @@ function getTripDataScore(
 ) {
   let score = 0
 
-  /*
-   * Duplikaateista säilytetään ensisijaisesti
-   * rivi, johon on jo liitetty markkinointitietoja.
-   */
   if (trip.last_marketed_at) {
     score += 100
   }
@@ -186,10 +182,9 @@ export default async function TripsPage({
 }: TripsPageProps) {
   const params = await searchParams
 
-  const search =
-    normalizeText(
-      params?.q?.trim() || ''
-    )
+  const search = normalizeText(
+    params?.q?.trim() || ''
+  )
 
   const allTrips =
     await getTripsWithPriority()
@@ -227,10 +222,6 @@ export default async function TripsPage({
         'fi'
       )
     })
-
-  const hiddenDuplicateCount =
-    allTrips.length -
-    uniqueTrips.length
 
   return (
     <main className="container">
@@ -277,15 +268,6 @@ export default async function TripsPage({
 
       <p className="search-result-count">
         Näytetään {trips.length} matkaa
-
-        {!search &&
-          hiddenDuplicateCount > 0 && (
-            <>
-              {' '}
-              · {hiddenDuplicateCount}{' '}
-              tuplaa piilotettu
-            </>
-          )}
       </p>
 
       <table>
@@ -349,8 +331,7 @@ export default async function TripsPage({
           {trips.length === 0 && (
             <tr>
               <td colSpan={6}>
-                Hakua vastaavia matkoja ei
-                löytynyt.
+                Hakua vastaavia matkoja ei löytynyt.
               </td>
             </tr>
           )}
