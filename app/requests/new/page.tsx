@@ -11,6 +11,10 @@ type ParsedDate = {
   year: number
 }
 
+type TripItem = Awaited<
+  ReturnType<typeof getTripsWithPriority>
+>[number]
+
 function parseDate(
   value?: string | null
 ): ParsedDate | null {
@@ -66,12 +70,91 @@ function formatDateRange(
   return `${start.day}.${start.month}.${start.year}–${end.day}.${end.month}.${end.year}`
 }
 
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/&/g, ' ja ')
+    .replace(/[^a-z0-9åäö]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function getTripDuplicateKey(
+  trip: TripItem
+) {
+  const normalizedName =
+    normalizeText(trip.name)
+
+  const normalizedCountry =
+    normalizeText(trip.country)
+
+  return [
+    normalizedName,
+    normalizedCountry,
+    trip.start_date,
+    trip.end_date,
+  ].join('|')
+}
+
+function removeDuplicateTrips(
+  trips: TripItem[]
+) {
+  const uniqueTrips = new Map<
+    string,
+    TripItem
+  >()
+
+  for (const trip of trips) {
+    const duplicateKey =
+      getTripDuplicateKey(trip)
+
+    if (!uniqueTrips.has(duplicateKey)) {
+      uniqueTrips.set(
+        duplicateKey,
+        trip
+      )
+    }
+  }
+
+  return Array.from(
+    uniqueTrips.values()
+  )
+}
+
 export default async function NewRequestPage() {
-  const trips = (await getTripsWithPriority())
-    .filter((trip) => trip.status === 'active')
-    .filter((trip) => trip.days_to_start >= 0)
-    .sort((a, b) =>
-      a.start_date.localeCompare(b.start_date)
+  const allTrips =
+    await getTripsWithPriority()
+
+  const filteredTrips = allTrips
+    .filter(
+      (trip) =>
+        trip.status === 'active'
+    )
+    .filter(
+      (trip) =>
+        trip.days_to_start >= 0
+    )
+    .sort((a, b) => {
+      const dateComparison =
+        a.start_date.localeCompare(
+          b.start_date
+        )
+
+      if (dateComparison !== 0) {
+        return dateComparison
+      }
+
+      return a.name.localeCompare(
+        b.name,
+        'fi'
+      )
+    })
+
+  const trips =
+    removeDuplicateTrips(
+      filteredTrips
     )
 
   async function createRequest(
@@ -84,19 +167,26 @@ export default async function NewRequestPage() {
     )
 
     const requesterName = String(
-      formData.get('requester_name') || ''
+      formData.get(
+        'requester_name'
+      ) || ''
     ).trim()
 
     const requestText = String(
-      formData.get('request_text') || ''
+      formData.get(
+        'request_text'
+      ) || ''
     ).trim()
 
     const priority = String(
-      formData.get('priority') || 'normal'
+      formData.get('priority') ||
+        'normal'
     )
 
     const desiredDate = String(
-      formData.get('desired_date') || ''
+      formData.get(
+        'desired_date'
+      ) || ''
     )
 
     if (
@@ -113,8 +203,10 @@ export default async function NewRequestPage() {
       .from('marketing_requests')
       .insert({
         trip_id: tripId,
-        requester_name: requesterName,
-        request_text: requestText,
+        requester_name:
+          requesterName,
+        request_text:
+          requestText,
         priority,
         desired_date:
           desiredDate || null,
@@ -122,7 +214,9 @@ export default async function NewRequestPage() {
       })
 
     if (error) {
-      throw new Error(error.message)
+      throw new Error(
+        error.message
+      )
     }
 
     redirect('/')
@@ -144,7 +238,9 @@ export default async function NewRequestPage() {
         </Link>
       </nav>
 
-      <h1>Uusi markkinointitoive</h1>
+      <h1>
+        Uusi markkinointitoive
+      </h1>
 
       <article className="card">
         <form action={createRequest}>
@@ -168,7 +264,8 @@ export default async function NewRequestPage() {
                   key={trip.id}
                   value={trip.id}
                 >
-                  {trip.name} – {trip.country} –{' '}
+                  {trip.name} –{' '}
+                  {trip.country} –{' '}
                   {formatDateRange(
                     trip.start_date,
                     trip.end_date
