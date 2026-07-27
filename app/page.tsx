@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
 import { priorityReason } from '../lib/priority'
 import { supabase } from '../lib/supabase'
-import DeleteRequestButton from './components/DeleteRequestButton'
+import DeleteItemButton from './components/DeleteItemButton'
 import {
   getMarketingCalendar,
   getMarketingRequests,
@@ -245,9 +245,81 @@ function CalendarRow({
             {item.notes}
           </p>
         )}
+
+        <DeleteItemButton
+          action={deleteCalendarItem}
+          itemId={item.id}
+          fieldName="calendar_item_id"
+          label="Poista kalenterista"
+          confirmMessage={
+            item.kind === 'done'
+              ? 'Poistetaanko tämä tehty markkinointimerkintä? Se poistuu myös matkan historiasta ja vaikuttaa pisteytykseen.'
+              : 'Poistetaanko tämä suunniteltu markkinointimerkintä kalenterista?'
+          }
+          formClassName="calendar-delete-form"
+          buttonClassName="button danger calendar-delete-button"
+        />
       </div>
     </article>
   )
+}
+
+async function deleteCalendarItem(
+  formData: FormData
+) {
+  'use server'
+
+  const calendarItemId = String(
+    formData.get('calendar_item_id') || ''
+  )
+
+  const separatorIndex =
+    calendarItemId.indexOf('-')
+
+  if (separatorIndex < 1) {
+    throw new Error(
+      'Kalenterimerkinnän tunniste puuttuu.'
+    )
+  }
+
+  const itemType = calendarItemId.slice(
+    0,
+    separatorIndex
+  )
+
+  const databaseId = calendarItemId.slice(
+    separatorIndex + 1
+  )
+
+  if (!databaseId) {
+    throw new Error(
+      'Kalenterimerkinnän tunniste puuttuu.'
+    )
+  }
+
+  const tableName =
+    itemType === 'plan'
+      ? 'marketing_plan'
+      : itemType === 'action'
+        ? 'marketing_actions'
+        : null
+
+  if (!tableName) {
+    throw new Error(
+      'Tuntematon kalenterimerkinnän tyyppi.'
+    )
+  }
+
+  const { error } = await supabase
+    .from(tableName)
+    .delete()
+    .eq('id', databaseId)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  revalidatePath('/')
 }
 
 async function markRequestDone(
@@ -1136,6 +1208,16 @@ export default async function Home({
           -webkit-line-clamp: 2;
         }
 
+        .calendar-delete-form {
+          margin: 10px 0 0;
+        }
+
+        .calendar-delete-button {
+          min-height: 30px;
+          padding: 6px 9px;
+          font-size: 10px;
+        }
+
         .empty-message {
           margin: 0;
           padding: 17px;
@@ -1971,9 +2053,13 @@ export default async function Home({
                           </button>
                         </form>
 
-                        <DeleteRequestButton
-                          requestId={request.id}
+                        <DeleteItemButton
                           action={deleteMarketingRequest}
+                          itemId={request.id}
+                          fieldName="request_id"
+                          label="Poista toive"
+                          confirmMessage="Poistetaanko tämä markkinointitoive ja siihen liittyvät kommentit?"
+                          buttonClassName="button danger"
                         />
                       </div>
                     </article>
