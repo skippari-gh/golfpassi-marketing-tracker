@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { supabase } from '../../../lib/supabase'
+import { getMarketingPlanItems } from '../../../lib/marketing-plan'
+import MarketingPlanItems from '../../components/MarketingPlanItems'
 import {
   getChannels,
   getTripsWithPriority,
@@ -127,24 +129,6 @@ async function createMarketingPlan(
     formData.get('trip_id') || ''
   )
 
-  const plannedDate = String(
-    formData.get(
-      'planned_date'
-    ) || ''
-  )
-
-  const channel = String(
-    formData.get('channel') || ''
-  ).trim()
-
-  const title = String(
-    formData.get('title') || ''
-  ).trim()
-
-  const notes = String(
-    formData.get('notes') || ''
-  ).trim()
-
   const createdBy = String(
     formData.get(
       'created_by'
@@ -157,42 +141,24 @@ async function createMarketingPlan(
     )
   }
 
-  if (!plannedDate) {
-    throw new Error(
-      'Valitse suunniteltu päivämäärä.'
-    )
-  }
-
-  if (!channel) {
-    throw new Error(
-      'Valitse markkinointikanava.'
-    )
-  }
-
-  if (!title) {
-    throw new Error(
-      'Kirjoita suunniteltu markkinointitoimi.'
-    )
-  }
-
   if (!createdBy) {
     throw new Error(
       'Kirjoita suunnittelijan nimi.'
     )
   }
 
+  const planItems = getMarketingPlanItems(formData)
+
   const { error } = await supabase
     .from('marketing_plan')
-    .insert({
-      trip_id: tripId,
-      planned_date:
-        plannedDate,
-      channel,
-      title,
-      notes: notes || null,
-      status: 'planned',
-      created_by: createdBy,
-    })
+    .insert(
+      planItems.map((item) => ({
+        trip_id: tripId,
+        ...item,
+        status: 'planned',
+        created_by: createdBy,
+      }))
+    )
 
   if (error) {
     throw new Error(
@@ -206,7 +172,10 @@ async function createMarketingPlan(
   )
 
   const selectedMonth =
-    plannedDate.slice(0, 7)
+    planItems
+      .map((item) => item.planned_date)
+      .sort()[0]
+      .slice(0, 7)
 
   redirect(
     `/?month=${selectedMonth}&view=planned`
@@ -420,8 +389,8 @@ export default async function NewPlanPage({
             </h2>
 
             <p className="meta">
-              Merkintä näkyy etusivun
-              markkinointikalenterissa.
+              Kaikki suoritukset näkyvät etusivun
+              markkinointikalenterissa saman matkan kortilla.
             </p>
           </div>
 
@@ -478,96 +447,10 @@ export default async function NewPlanPage({
               </p>
             </div>
 
-            <div className="plan-form-grid">
-              <div className="plan-field">
-                <label htmlFor="planned_date">
-                  Suunniteltu
-                  päivämäärä{' '}
-                  <span className="required-mark">
-                    *
-                  </span>
-                </label>
-
-                <input
-                  id="planned_date"
-                  name="planned_date"
-                  type="date"
-                  defaultValue={
-                    getToday()
-                  }
-                  required
-                />
-              </div>
-
-              <div className="plan-field">
-                <label htmlFor="channel">
-                  Kanava{' '}
-                  <span className="required-mark">
-                    *
-                  </span>
-                </label>
-
-                <select
-                  id="channel"
-                  name="channel"
-                  defaultValue=""
-                  required
-                >
-                  <option value="">
-                    Valitse kanava
-                  </option>
-
-                  {channels.map(
-                    (channel) => (
-                      <option
-                        key={channel.id}
-                        value={
-                          channel.name
-                        }
-                      >
-                        {channel.name}
-                      </option>
-                    )
-                  )}
-                </select>
-              </div>
-            </div>
-
-            <div className="plan-field">
-              <label htmlFor="title">
-                Suunniteltu
-                toimenpide{' '}
-                <span className="required-mark">
-                  *
-                </span>
-              </label>
-
-              <input
-                id="title"
-                name="title"
-                type="text"
-                placeholder="Esimerkiksi Facebook-postaus, uutiskirjenosto tai bannerikampanja"
-                required
-              />
-
-              <p className="plan-help">
-                Kirjoita lyhyesti,
-                mitä aiotaan julkaista
-                tai tehdä.
-              </p>
-            </div>
-
-            <div className="plan-field">
-              <label htmlFor="notes">
-                Lisätiedot
-              </label>
-
-              <textarea
-                id="notes"
-                name="notes"
-                placeholder="Sisältöidea, kampanjan tavoite, aineistot tai muut huomioitavat asiat"
-              />
-            </div>
+            <MarketingPlanItems
+              channelNames={channels.map((channel) => channel.name)}
+              defaultDate={getToday()}
+            />
 
             <div className="plan-field">
               <label htmlFor="created_by">

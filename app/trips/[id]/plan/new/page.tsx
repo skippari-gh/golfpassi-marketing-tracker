@@ -1,7 +1,13 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { supabase } from '../../../../../lib/supabase'
-import { getTripWithPriority } from '../../../../../lib/trips'
+import { getMarketingPlanItems } from '../../../../../lib/marketing-plan'
+import {
+  getChannels,
+  getTripWithPriority,
+} from '../../../../../lib/trips'
+import MarketingPlanItems from '../../../../components/MarketingPlanItems'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +17,10 @@ export default async function NewMarketingPlanPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const trip = await getTripWithPriority(id)
+  const [trip, channels] = await Promise.all([
+    getTripWithPriority(id),
+    getChannels(),
+  ])
 
   if (!trip) {
     return (
@@ -28,47 +37,36 @@ export default async function NewMarketingPlanPage({
   async function createPlan(formData: FormData) {
     'use server'
 
-    const plannedDate = String(
-      formData.get('planned_date') || ''
-    )
-
-    const channel = String(
-      formData.get('channel') || ''
-    ).trim()
-
-    const title = String(
-      formData.get('title') || ''
-    ).trim()
-
-    const notes = String(
-      formData.get('notes') || ''
-    ).trim()
-
     const createdBy = String(
       formData.get('created_by') || ''
     ).trim()
 
-    if (!plannedDate || !channel || !title) {
-      throw new Error('Täytä päivämäärä, kanava ja otsikko.')
-    }
+    const planItems = getMarketingPlanItems(formData)
 
     const { error } = await supabase
       .from('marketing_plan')
-      .insert({
-        trip_id: id,
-        planned_date: plannedDate,
-        channel,
-        title,
-        notes: notes || null,
-        status: 'planned',
-        created_by: createdBy || null,
-      })
+      .insert(
+        planItems.map((item) => ({
+          trip_id: id,
+          ...item,
+          status: 'planned',
+          created_by: createdBy || null,
+        }))
+      )
 
     if (error) {
       throw new Error(error.message)
     }
 
-    redirect(`/trips/${id}`)
+    revalidatePath('/')
+    revalidatePath(`/trips/${id}`)
+
+    const selectedMonth = planItems
+      .map((item) => item.planned_date)
+      .sort()[0]
+      .slice(0, 7)
+
+    redirect(`/?month=${selectedMonth}&view=planned`)
   }
 
   return (
@@ -80,72 +78,27 @@ export default async function NewMarketingPlanPage({
       </nav>
 
       <article className="card">
-        <h1>Lisää suunniteltu julkaisu</h1>
+        <h1>Lisää markkinointisuunnitelma</h1>
 
         <p className="meta">
           {trip.name} · {trip.country}
         </p>
 
+        <p className="meta">
+          Lisää kaikki matkalle suunnitellut kanavat samalla kertaa.
+          Ne näkyvät kalenterissa yhdellä matkakortilla.
+        </p>
+
         <form action={createPlan}>
-          <p>
-            <label>
-              Päivämäärä
-              <br />
-              <input
-                type="date"
-                name="planned_date"
-                required
-              />
-            </label>
-          </p>
-
-          <p>
-            <label>
-              Kanava
-              <br />
-              <select
-                name="channel"
-                defaultValue=""
-                required
-              >
-                <option value="" disabled>
-                  Valitse kanava
-                </option>
-                <option value="Facebook">Facebook</option>
-                <option value="Instagram">Instagram</option>
-                <option value="LinkedIn">LinkedIn</option>
-                <option value="Uutiskirje">Uutiskirje</option>
-                <option value="Verkkosivu">Verkkosivu</option>
-                <option value="Blogi">Blogi</option>
-                <option value="Banneri">Banneri</option>
-              </select>
-            </label>
-          </p>
-
-          <p>
-            <label>
-              Otsikko
-              <br />
-              <input
-                type="text"
-                name="title"
-                placeholder="Esim. Kesän viimeiset paikat"
-                required
-              />
-            </label>
-          </p>
-
-          <p>
-            <label>
-              Huomiot
-              <br />
-              <textarea
-                name="notes"
-                rows={5}
-                placeholder="Lisätiedot..."
-              />
-            </label>
-          </p>
+          <MarketingPlanItems
+            channelNames={channels.map((channel) => channel.name)}
+            defaultDate={new Intl.DateTimeFormat('en-CA', {
+              timeZone: 'Europe/Helsinki',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            }).format(new Date())}
+          />
 
           <p>
             <label>

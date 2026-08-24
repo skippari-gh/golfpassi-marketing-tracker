@@ -129,7 +129,7 @@ export default async function TripPage({
           href={`/trips/${trip.id}/plan/new`}
           style={{ flexShrink: 0 }}
         >
-          Lisää suunniteltu julkaisu
+          Lisää suoritteita
         </Link>
       </div>
 

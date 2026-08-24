@@ -180,7 +180,9 @@ function CalendarRow({
 }) {
   const overdue =
     item.kind === 'planned' &&
-    item.date < today
+    item.performances.some(
+      (performance) => performance.date < today
+    )
 
   const statusLabel =
     item.kind === 'done'
@@ -213,7 +215,13 @@ function CalendarRow({
           </span>
 
           <span className="calendar-channel">
-            {item.channel}
+            {item.kind === 'planned'
+              ? `${item.performances.length} ${
+                  item.performances.length === 1
+                    ? 'suorite'
+                    : 'suoritetta'
+                }`
+              : item.channel}
           </span>
         </div>
 
@@ -236,29 +244,68 @@ function CalendarRow({
           </p>
         )}
 
-        <p className="calendar-action">
-          {item.title}
-        </p>
+        {item.kind === 'planned' ? (
+          <div className="calendar-performances">
+            {item.performances.map((performance) => (
+              <div
+                className="calendar-performance"
+                key={performance.id}
+              >
+                <div className="calendar-performance-top">
+                  <strong>{performance.channel}</strong>
+                  <span>{formatDate(performance.date)}</span>
+                  {performance.date < today ? (
+                    <span className="calendar-performance-overdue">
+                      Myöhässä
+                    </span>
+                  ) : null}
+                </div>
 
-        {item.notes && (
-          <p className="calendar-notes">
-            {item.notes}
-          </p>
+                <p className="calendar-action">
+                  {performance.title}
+                </p>
+
+                {performance.notes ? (
+                  <p className="calendar-notes">
+                    {performance.notes}
+                  </p>
+                ) : null}
+
+                <DeleteItemButton
+                  action={deleteCalendarItem}
+                  itemId={performance.id}
+                  fieldName="calendar_item_id"
+                  label="Poista suorite"
+                  confirmMessage="Poistetaanko tämä markkinointisuorite suunnitelmasta?"
+                  formClassName="calendar-delete-form"
+                  buttonClassName="button danger calendar-delete-button"
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <p className="calendar-action">
+              {item.title}
+            </p>
+
+            {item.notes ? (
+              <p className="calendar-notes">
+                {item.notes}
+              </p>
+            ) : null}
+
+            <DeleteItemButton
+              action={deleteCalendarItem}
+              itemId={item.id}
+              fieldName="calendar_item_id"
+              label="Poista kalenterista"
+              confirmMessage="Poistetaanko tämä tehty markkinointimerkintä? Se poistuu myös matkan historiasta ja vaikuttaa pisteytykseen."
+              formClassName="calendar-delete-form"
+              buttonClassName="button danger calendar-delete-button"
+            />
+          </>
         )}
-
-        <DeleteItemButton
-          action={deleteCalendarItem}
-          itemId={item.id}
-          fieldName="calendar_item_id"
-          label="Poista kalenterista"
-          confirmMessage={
-            item.kind === 'done'
-              ? 'Poistetaanko tämä tehty markkinointimerkintä? Se poistuu myös matkan historiasta ja vaikuttaa pisteytykseen.'
-              : 'Poistetaanko tämä suunniteltu markkinointimerkintä kalenterista?'
-          }
-          formClassName="calendar-delete-form"
-          buttonClassName="button danger calendar-delete-button"
-        />
       </div>
     </article>
   )
@@ -454,8 +501,24 @@ export default async function Home({
     )
 
   const overdueCount = plannedItems.filter(
-    (item) => item.date < today
-  ).length
+    (item) => item.kind === 'planned'
+  ).reduce(
+    (count, item) =>
+      count +
+      item.performances.filter(
+        (performance) => performance.date < today
+      ).length,
+    0
+  )
+
+  const plannedPerformanceCount = plannedItems.reduce(
+    (count, item) =>
+      count +
+      (item.kind === 'planned'
+        ? item.performances.length
+        : 0),
+    0
+  )
 
   const showPlanned =
     selectedView === 'all' ||
@@ -1208,6 +1271,44 @@ export default async function Home({
           -webkit-line-clamp: 2;
         }
 
+        .calendar-performances {
+          display: grid;
+          gap: 9px;
+          margin-top: 11px;
+        }
+
+        .calendar-performance {
+          padding: 10px 11px;
+          border: 1px solid #dce7ee;
+          border-radius: 9px;
+          background: #f8fbfd;
+        }
+
+        .calendar-performance-top {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 7px;
+          color: var(--gp-muted);
+          font-size: 11px;
+        }
+
+        .calendar-performance-top strong {
+          color: var(--gp-navy);
+          font-size: 12px;
+        }
+
+        .calendar-performance-overdue {
+          padding: 3px 5px;
+          border-radius: 4px;
+          background: #ffe3e5;
+          color: var(--gp-red);
+          font-size: 9px;
+          font-weight: 900;
+          letter-spacing: .04em;
+          text-transform: uppercase;
+        }
+
         .calendar-delete-form {
           margin: 10px 0 0;
         }
@@ -1646,7 +1747,7 @@ export default async function Home({
 
               <div className="calendar-summary">
                 <span className="summary-pill">
-                  Tulossa {plannedItems.length}
+                  Tulossa {plannedPerformanceCount}
                 </span>
 
                 <span className="summary-pill done">
@@ -1668,7 +1769,12 @@ export default async function Home({
                     </h3>
 
                     <span className="calendar-count">
-                      {plannedItems.length} merkintää
+                      {plannedItems.length}{' '}
+                      {plannedItems.length === 1 ? 'matka' : 'matkaa'} ·{' '}
+                      {plannedPerformanceCount}{' '}
+                      {plannedPerformanceCount === 1
+                        ? 'suorite'
+                        : 'suoritetta'}
                     </span>
                   </div>
 

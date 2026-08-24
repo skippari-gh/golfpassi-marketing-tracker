@@ -33,3 +33,101 @@ label { font-weight:700; }
 .filters select {
   max-width: 220px;
 }
+
+.plan-items-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.plan-items-fieldset > legend {
+  margin-bottom: 6px;
+  color: var(--navy);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.plan-items-intro {
+  margin: 0 0 14px;
+  color: #607080;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.plan-items-list {
+  display: grid;
+  gap: 14px;
+}
+
+.plan-item {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #d7e3ec;
+  border-radius: 14px;
+  background: #f8fbfd;
+}
+
+.plan-item-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.plan-item-heading h3 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 16px;
+}
+
+.plan-item-remove {
+  padding: 5px 8px;
+  background: transparent;
+  color: #a52a31;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.plan-item-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, .65fr);
+  gap: 14px;
+}
+
+.plan-item .plan-field {
+  display: grid;
+  gap: 7px;
+}
+
+.plan-item .plan-field label {
+  color: var(--navy);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.plan-item .plan-field input,
+.plan-item .plan-field select,
+.plan-item .plan-field textarea {
+  width: 100%;
+}
+
+.required-mark {
+  color: #c9252d;
+}
+
+.plan-item-add {
+  margin-top: 14px;
+}
+
+.plan-item-add:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 680px) {
+  .plan-item-grid {
+    grid-template-columns: 1fr;
+  }
+}
