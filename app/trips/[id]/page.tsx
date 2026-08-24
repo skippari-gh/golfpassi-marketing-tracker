@@ -27,6 +27,7 @@ async function markPlanDone(formData: FormData) {
       completed_at: new Date().toISOString(),
     })
     .eq('id', planId)
+    .is('archived_at', null)
 
   if (error) {
     throw new Error(error.message)

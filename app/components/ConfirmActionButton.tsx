@@ -1,6 +1,6 @@
 'use client'
 
-type DeleteItemButtonProps = {
+type ConfirmActionButtonProps = {
   action: (
     formData: FormData
   ) => void | Promise<void>
@@ -12,7 +12,7 @@ type DeleteItemButtonProps = {
   buttonClassName?: string
 }
 
-export default function DeleteItemButton({
+export default function ConfirmActionButton({
   action,
   itemId,
   fieldName,
@@ -20,7 +20,7 @@ export default function DeleteItemButton({
   confirmMessage,
   formClassName,
   buttonClassName = 'button danger',
-}: DeleteItemButtonProps) {
+}: ConfirmActionButtonProps) {
   return (
     <form
       action={action}

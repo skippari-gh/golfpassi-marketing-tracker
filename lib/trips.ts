@@ -266,6 +266,7 @@ export async function getTripsWithPriority() {
   } = await supabase
     .from('marketing_actions')
     .select('*, channels(name)')
+    .is('archived_at', null)
 
   if (actionsError) {
     throw new Error(
@@ -324,6 +325,7 @@ export async function getMarketingActionsForTrip(
         '*, channels(name)'
       )
       .eq('trip_id', tripId)
+      .is('archived_at', null)
       .order('action_date', {
         ascending: false,
       })
@@ -348,6 +350,7 @@ export async function getMarketingRequests() {
         )
       `)
       .neq('status', 'done')
+      .is('archived_at', null)
       .order('created_at', {
         ascending: false,
       })
@@ -369,6 +372,7 @@ export async function getMarketingPlan(
       .from('marketing_plan')
       .select('*')
       .eq('trip_id', tripId)
+      .is('archived_at', null)
       .order('planned_date', {
         ascending: true,
       })
@@ -433,6 +437,7 @@ export async function getMarketingCalendar() {
     supabase
       .from('marketing_plan')
       .select('*')
+      .is('archived_at', null)
       .order('planned_date', {
         ascending: true,
       }),
@@ -442,6 +447,7 @@ export async function getMarketingCalendar() {
       .select(
         '*, channels(name)'
       )
+      .is('archived_at', null)
       .order('action_date', {
         ascending: false,
       }),

@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
 import { priorityReason } from '../lib/priority'
 import { supabase } from '../lib/supabase'
-import DeleteItemButton from './components/DeleteItemButton'
+import { archiveEntity } from '../lib/archive'
+import ConfirmActionButton from './components/ConfirmActionButton'
 import {
   getMarketingCalendar,
   getMarketingRequests,
@@ -246,25 +247,25 @@ function CalendarRow({
           </p>
         )}
 
-        <DeleteItemButton
-          action={deleteCalendarItem}
+        <ConfirmActionButton
+          action={archiveCalendarItem}
           itemId={item.id}
           fieldName="calendar_item_id"
-          label="Poista kalenterista"
+          label="Arkistoi"
           confirmMessage={
             item.kind === 'done'
-              ? 'Poistetaanko tämä tehty markkinointimerkintä? Se poistuu myös matkan historiasta ja vaikuttaa pisteytykseen.'
-              : 'Poistetaanko tämä suunniteltu markkinointimerkintä kalenterista?'
+              ? 'Arkistoidaanko tämä tehty markkinointimerkintä? Se poistuu aktiivisesta historiasta ja pisteytyksestä, mutta sen voi palauttaa arkistosta.'
+              : 'Arkistoidaanko tämä suunniteltu markkinointimerkintä? Sen voi palauttaa arkistosta.'
           }
           formClassName="calendar-delete-form"
-          buttonClassName="button danger calendar-delete-button"
+          buttonClassName="button secondary calendar-delete-button"
         />
       </div>
     </article>
   )
 }
 
-async function deleteCalendarItem(
+async function archiveCalendarItem(
   formData: FormData
 ) {
   'use server'
@@ -273,53 +274,16 @@ async function deleteCalendarItem(
     formData.get('calendar_item_id') || ''
   )
 
-  const separatorIndex =
-    calendarItemId.indexOf('-')
-
-  if (separatorIndex < 1) {
-    throw new Error(
-      'Kalenterimerkinnän tunniste puuttuu.'
-    )
-  }
-
-  const itemType = calendarItemId.slice(
-    0,
-    separatorIndex
+  const archived = await archiveEntity(
+    calendarItemId
   )
-
-  const databaseId = calendarItemId.slice(
-    separatorIndex + 1
-  )
-
-  if (!databaseId) {
-    throw new Error(
-      'Kalenterimerkinnän tunniste puuttuu.'
-    )
-  }
-
-  const tableName =
-    itemType === 'plan'
-      ? 'marketing_plan'
-      : itemType === 'action'
-        ? 'marketing_actions'
-        : null
-
-  if (!tableName) {
-    throw new Error(
-      'Tuntematon kalenterimerkinnän tyyppi.'
-    )
-  }
-
-  const { error } = await supabase
-    .from(tableName)
-    .delete()
-    .eq('id', databaseId)
-
-  if (error) {
-    throw new Error(error.message)
-  }
 
   revalidatePath('/')
+  revalidatePath('/archive')
+
+  if (archived.tripId) {
+    revalidatePath(`/trips/${archived.tripId}`)
+  }
 }
 
 async function markRequestDone(
@@ -341,6 +305,7 @@ async function markRequestDone(
     .from('marketing_requests')
     .update({ status: 'done' })
     .eq('id', requestId)
+    .is('archived_at', null)
 
   if (error) {
     throw new Error(error.message)
@@ -349,7 +314,7 @@ async function markRequestDone(
   revalidatePath('/')
 }
 
-async function deleteMarketingRequest(
+async function archiveMarketingRequest(
   formData: FormData
 ) {
   'use server'
@@ -364,25 +329,10 @@ async function deleteMarketingRequest(
     )
   }
 
-  const { error: commentsError } = await supabase
-    .from('marketing_request_comments')
-    .delete()
-    .eq('request_id', requestId)
-
-  if (commentsError) {
-    throw new Error(commentsError.message)
-  }
-
-  const { error: requestError } = await supabase
-    .from('marketing_requests')
-    .delete()
-    .eq('id', requestId)
-
-  if (requestError) {
-    throw new Error(requestError.message)
-  }
+  await archiveEntity(`request-${requestId}`)
 
   revalidatePath('/')
+  revalidatePath('/archive')
 }
 
 export default async function Home({
@@ -1492,6 +1442,10 @@ export default async function Home({
                 Synkronointi
               </Link>
 
+              <Link href="/archive">
+                Arkisto
+              </Link>
+
               <Link href="/requests/new">
                 Lisää toive
               </Link>
@@ -2057,13 +2011,13 @@ export default async function Home({
                           </button>
                         </form>
 
-                        <DeleteItemButton
-                          action={deleteMarketingRequest}
+                        <ConfirmActionButton
+                          action={archiveMarketingRequest}
                           itemId={request.id}
                           fieldName="request_id"
-                          label="Poista toive"
-                          confirmMessage="Poistetaanko tämä markkinointitoive ja siihen liittyvät kommentit?"
-                          buttonClassName="button danger"
+                          label="Arkistoi toive"
+                          confirmMessage="Arkistoidaanko tämä markkinointitoive? Keskustelu ja liitteet säilyvät, ja toiveen voi palauttaa arkistosta."
+                          buttonClassName="button secondary"
                         />
                       </div>
                     </article>
