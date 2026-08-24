@@ -151,7 +151,11 @@ export default async function NewMarketingActionPage({
   ])
 
   const sortedTrips = [
-    ...trips,
+    ...trips.filter(
+      (trip) =>
+        trip.status === 'active' &&
+        trip.days_to_start >= 0
+    ),
   ].sort((a, b) => {
     const dateComparison =
       a.start_date.localeCompare(

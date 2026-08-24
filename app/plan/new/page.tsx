@@ -233,13 +233,12 @@ export default async function NewPlanPage({
       getChannels(),
     ])
 
-  /*
-   * Kaikki matkat ovat mukana.
-   * Aktiiviset tulevat matkat
-   * näytetään listan alussa.
-   */
   const trips = [
-    ...allTrips,
+    ...allTrips.filter(
+      (trip) =>
+        trip.status === 'active' &&
+        trip.days_to_start >= 0
+    ),
   ].sort((a, b) => {
     const groupDifference =
       getTripGroup(a) -

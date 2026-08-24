@@ -190,7 +190,13 @@ export default async function TripsPage({
     await getTripsWithPriority()
 
   const uniqueTrips =
-    removeDuplicateTrips(allTrips)
+    removeDuplicateTrips(
+      allTrips.filter(
+        (trip) =>
+          trip.status === 'active' &&
+          trip.days_to_start >= 0
+      )
+    )
 
   const trips = uniqueTrips
     .filter((trip) => {
