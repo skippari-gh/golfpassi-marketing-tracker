@@ -1488,6 +1488,10 @@ export default async function Home({
                 Matkat
               </Link>
 
+              <Link href="/sync-status">
+                Synkronointi
+              </Link>
+
               <Link href="/requests/new">
                 Lisää toive
               </Link>

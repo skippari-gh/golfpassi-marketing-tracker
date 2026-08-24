@@ -41,6 +41,22 @@ create table if not exists marketing_actions (
   created_at timestamptz default now()
 );
 
+create table if not exists trip_sync_runs (
+  id uuid primary key default uuid_generate_v4(),
+  status text not null default 'running'
+    check (status in ('running', 'success', 'failed')),
+  started_at timestamptz not null default now(),
+  finished_at timestamptz,
+  found_count integer,
+  added_count integer,
+  updated_count integer,
+  missing_count integer,
+  error_message text
+);
+
+create index if not exists trip_sync_runs_started_at_idx
+  on trip_sync_runs (started_at desc);
+
 insert into channels (name, color) values
 ('Uutiskirje', '#ff8200'),
 ('Facebook', '#00aaff'),

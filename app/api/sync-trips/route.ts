@@ -1294,13 +1294,9 @@ async function finishSyncRun(
 async function saveTripsToSupabase(
   trips: ScrapedTrip[]
 ) {
-  const runId =
-    await startSyncRun()
-
-  try {
-    const now =
-      new Date()
-        .toISOString()
+  const now =
+    new Date()
+      .toISOString()
 
     const {
       data: existingData,
@@ -1466,68 +1462,69 @@ async function saveTripsToSupabase(
       }
     }
 
-    await finishSyncRun(
-      runId,
-      {
-        status: 'success',
+  return {
+    added_count:
+      addedCount,
 
-        found_count:
-          trips.length,
+    updated_count:
+      updatedCount,
 
-        added_count:
-          addedCount,
-
-        updated_count:
-          updatedCount,
-
-        missing_count:
-          missingIds.length,
-
-        error_message: null,
-      }
-    )
-
-    return {
-      added_count:
-        addedCount,
-
-      updated_count:
-        updatedCount,
-
-      missing_count:
-        missingIds.length,
-    }
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Tuntematon virhe'
-
-    await finishSyncRun(
-      runId,
-      {
-        status: 'failed',
-
-        error_message:
-          message,
-      }
-    )
-
-    throw error
+    missing_count:
+      missingIds.length,
   }
 }
 
 export async function GET(
   request: Request
 ) {
-  try {
-    const requestUrl =
-      new URL(request.url)
+  const startedAt = Date.now()
+  const requestUrl =
+    new URL(request.url)
+  const shouldSave =
+    requestUrl
+      .searchParams
+      .get('save') === '1'
+  let runId: string | null = null
 
-    const shouldSave =
-      requestUrl
-        .searchParams
-        .get('save') === '1'
+  try {
+    if (
+      shouldSave &&
+      !isSaveAllowed(
+        request
+      )
+    ) {
+      return Response.json(
+        {
+          success: false,
+
+          error:
+            'Tallennus ei ole sallittu. Tuotantoon pitää lisätä SYNC_SECRET-ympäristömuuttuja.',
+        },
+        {
+          status: 403,
+        }
+      )
+    }
+
+    if (shouldSave) {
+      runId =
+        await startSyncRun()
+
+      console.log(
+        JSON.stringify({
+          level: 'info',
+          message:
+            'Trip synchronization started',
+          route:
+            '/api/sync-trips',
+          run_id: runId,
+          request_id:
+            request.headers.get(
+              'x-vercel-id'
+            ),
+        })
+      )
+    }
 
     const sourceResults =
       await Promise.all(
@@ -1656,28 +1653,52 @@ export async function GET(
       )
     }
 
-    if (
-      !isSaveAllowed(
-        request
-      )
-    ) {
-      return Response.json(
-        {
-          success: false,
-
-          error:
-            'Tallennus ei ole sallittu. Tuotantoon pitää lisätä SYNC_SECRET-ympäristömuuttuja.',
-        },
-        {
-          status: 403,
-        }
-      )
-    }
-
     const saveResult =
       await saveTripsToSupabase(
         uniqueTrips
       )
+
+    await finishSyncRun(
+      runId!,
+      {
+        status: 'success',
+
+        found_count:
+          uniqueTrips.length,
+
+        added_count:
+          saveResult.added_count,
+
+        updated_count:
+          saveResult.updated_count,
+
+        missing_count:
+          saveResult.missing_count,
+
+        error_message: null,
+      }
+    )
+
+    console.log(
+      JSON.stringify({
+        level: 'info',
+        message:
+          'Trip synchronization completed',
+        route:
+          '/api/sync-trips',
+        run_id: runId,
+        duration_ms:
+          Date.now() - startedAt,
+        found_count:
+          uniqueTrips.length,
+        added_count:
+          saveResult.added_count,
+        updated_count:
+          saveResult.updated_count,
+        missing_count:
+          saveResult.missing_count,
+      })
+    )
 
     return Response.json(
       {
@@ -1713,6 +1734,34 @@ export async function GET(
       error instanceof Error
         ? error.message
         : 'Tuntematon virhe'
+
+    if (runId) {
+      await finishSyncRun(
+        runId,
+        {
+          status: 'failed',
+          error_message:
+            message,
+        }
+      )
+    }
+
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        message:
+          'Trip synchronization failed',
+        route:
+          '/api/sync-trips',
+        mode: shouldSave
+          ? 'save'
+          : 'preview',
+        run_id: runId,
+        duration_ms:
+          Date.now() - startedAt,
+        error: message,
+      })
+    )
 
     return Response.json(
       {
