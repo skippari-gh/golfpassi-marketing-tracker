@@ -71,6 +71,8 @@ const SOURCES: TripSource[] = [
   },
 ]
 
+const MINIMUM_TOTAL_TRIPS = 20
+
 const REJECTED_TITLES = [
   'lue lisää',
   'näytä',
@@ -1564,6 +1566,27 @@ export async function GET(
     } = deduplicateTrips(
       allTrips
     )
+
+    const emptySource =
+      sourceResults.find(
+        (result) =>
+          result.found === 0
+      )
+
+    if (emptySource) {
+      throw new Error(
+        `Synkronointi keskeytettiin: lähteestä ${emptySource.source_url} ei löytynyt yhtään matkaa.`
+      )
+    }
+
+    if (
+      uniqueTrips.length <
+      MINIMUM_TOTAL_TRIPS
+    ) {
+      throw new Error(
+        `Synkronointi keskeytettiin: löytyi vain ${uniqueTrips.length} yksilöllistä matkaa.`
+      )
+    }
 
     const urlSlugNames =
       uniqueTrips.filter(
