@@ -27,3 +27,20 @@ Lisää `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
+
+## Matkojen automaattinen synkronointi
+
+Vercel ajaa `/api/cron/sync-trips`-reitin päivittäin klo 05.00 UTC
+(Suomessa klo 07.00 talviaikaan ja klo 08.00 kesäaikaan). Ajo hakee
+Golfpassin peli- ja kurssimatkat ja päivittää ne Supabaseen.
+
+Tuotantoympäristössä tarvitaan lisäksi seuraavat salaisuudet:
+
+```env
+CRON_SECRET=...
+SYNC_SECRET=...
+SUPABASE_SECRET_KEY=...
+```
+
+Vercel lähettää cron-kutsussa `CRON_SECRET`-arvon Authorization-headerissa.
+Cron-reitti käyttää `SYNC_SECRET`-arvoa varsinaisen tallennusreitin kutsumiseen.
