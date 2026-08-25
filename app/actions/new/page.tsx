@@ -92,12 +92,29 @@ async function createMarketingAction(
     )
   }
 
+  const {
+    data: trip,
+    error: tripError,
+  } = await supabase
+    .from('trips')
+    .select('destination_id')
+    .eq('id', tripId)
+    .single()
+
+  if (tripError || !trip) {
+    throw new Error(
+      'Valitun matkan kohdetta ei löytynyt.'
+    )
+  }
+
   const { error } =
     await supabase
       .from(
         'marketing_actions'
       )
       .insert({
+        destination_id:
+          trip.destination_id,
         trip_id: tripId,
         channel_id:
           channelId,

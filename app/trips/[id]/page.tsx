@@ -135,8 +135,8 @@ export default async function TripPage({
       (item) =>
         item.status === 'active' &&
         item.days_to_start >= 0 &&
-        getTripDestination(item).key ===
-          destination.key
+        item.destination_id ===
+          trip.destination_id
     )
     .sort((a, b) => {
       const startComparison =

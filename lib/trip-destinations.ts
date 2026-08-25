@@ -2,6 +2,7 @@ import { normalizeTripIdentityText } from './trip-identity'
 
 export type DestinationTrip = {
   id: string
+  destination_id?: string | null
   name: string
   country: string
   start_date: string
@@ -89,8 +90,12 @@ export function groupTripsByDestination<
     const destination =
       getTripDestination(trip)
 
+    const destinationKey =
+      trip.destination_id ||
+      destination.key
+
     const existingGroup =
-      groups.get(destination.key)
+      groups.get(destinationKey)
 
     if (existingGroup) {
       existingGroup.trips.push(
@@ -99,8 +104,8 @@ export function groupTripsByDestination<
       continue
     }
 
-    groups.set(destination.key, {
-      key: destination.key,
+    groups.set(destinationKey, {
+      key: destinationKey,
       name: destination.name,
       country: trip.country,
       trips: [trip],
