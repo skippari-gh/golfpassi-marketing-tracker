@@ -8,6 +8,7 @@ import {
   getTripsWithPriority,
   getMarketingActionsForTrip,
   getMarketingPlan,
+  getChannels,
 } from '../../../lib/trips'
 
 export const dynamic = 'force-dynamic'
@@ -53,9 +54,48 @@ async function markPlanDone(formData: FormData) {
   revalidatePath('/')
 }
 
+async function updatePlanPerformance(formData: FormData) {
+  'use server'
+
+  const planId = String(formData.get('plan_id') || '')
+  const destinationId = String(formData.get('destination_id') || '')
+  const plannedDate = String(formData.get('planned_date') || '').trim()
+  const channel = String(formData.get('channel') || '').trim()
+  const title = String(formData.get('title') || '').trim()
+  const notes = String(formData.get('notes') || '').trim()
+
+  if (!planId || !destinationId) {
+    throw new Error('Suunnitelman tunniste puuttuu.')
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(plannedDate) || !channel || !title) {
+    throw new Error('Täytä päivämäärä, kanava ja toimenpide.')
+  }
+
+  const { error } = await supabase
+    .from('marketing_plan')
+    .update({
+      planned_date: plannedDate,
+      channel,
+      title,
+      notes: notes || null,
+    })
+    .eq('id', planId)
+    .eq('destination_id', destinationId)
+    .is('archived_at', null)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/destinations/${destinationId}`)
+  revalidatePath('/')
+}
+
 export default async function DestinationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: destinationId } = await params
-  const allTrips = await getTripsWithPriority()
+  const [allTrips, channels] = await Promise.all([
+    getTripsWithPriority(),
+    getChannels(),
+  ])
   const departures = allTrips
     .filter((trip) => trip.destination_id === destinationId)
     .sort((a, b) => a.start_date.localeCompare(b.start_date))
@@ -159,13 +199,54 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
                 <td>{plan.planned_date}</td><td>{plan.channel}</td><td>{plan.title}</td>
                 <td>{plan.notes || '-'}</td>
                 <td>{statusLabel[plan.status as keyof typeof statusLabel] || plan.status}</td>
-                <td>{plan.status !== 'done' && plan.status !== 'cancelled' && (
-                  <form action={markPlanDone}>
-                    <input type="hidden" name="plan_id" value={plan.id} />
-                    <input type="hidden" name="destination_id" value={destinationId} />
-                    <button className="button secondary" type="submit">Merkitse valmiiksi</button>
-                  </form>
-                )}</td>
+                <td>
+                  <div className="plan-row-actions">
+                    <details className="plan-edit-details">
+                      <summary className="button secondary">Muokkaa</summary>
+                      <form className="plan-edit-form" action={updatePlanPerformance}>
+                        <input type="hidden" name="plan_id" value={plan.id} />
+                        <input type="hidden" name="destination_id" value={destinationId} />
+
+                        <label>
+                          Päivämäärä
+                          <input type="date" name="planned_date" defaultValue={plan.planned_date} required />
+                        </label>
+
+                        <label>
+                          Kanava
+                          <select name="channel" defaultValue={plan.channel} required>
+                            {!channels.some((item) => item.name === plan.channel) && (
+                              <option value={plan.channel}>{plan.channel}</option>
+                            )}
+                            {channels.map((item) => (
+                              <option key={item.id} value={item.name}>{item.name}</option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label>
+                          Toimenpide
+                          <input type="text" name="title" defaultValue={plan.title} required />
+                        </label>
+
+                        <label>
+                          Huomiot
+                          <textarea name="notes" defaultValue={plan.notes || ''} rows={3} />
+                        </label>
+
+                        <button className="button" type="submit">Tallenna muutokset</button>
+                      </form>
+                    </details>
+
+                    {plan.status !== 'done' && plan.status !== 'cancelled' && (
+                      <form action={markPlanDone}>
+                        <input type="hidden" name="plan_id" value={plan.id} />
+                        <input type="hidden" name="destination_id" value={destinationId} />
+                        <button className="button secondary" type="submit">Merkitse valmiiksi</button>
+                      </form>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
