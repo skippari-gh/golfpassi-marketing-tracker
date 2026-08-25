@@ -3,6 +3,7 @@ import { areTripsLikelyDuplicates } from './trip-identity'
 
 export type TripWithPriority = {
   id: string
+  destination_id: string
   name: string
   country: string
   trip_type: string
@@ -48,6 +49,7 @@ export type MarketingCalendarPerformance = {
 type MarketingCalendarItemBase = {
   id: string
   date: string
+  destination_id: string | null
   trip_id: string | null
   trip_name: string
   country: string
@@ -140,7 +142,11 @@ function scoreTrip(
 ): TripWithPriority {
   const tripActions = actions.filter(
     (action) =>
-      action.trip_id === trip.id
+      trip.destination_id &&
+      action.destination_id
+        ? action.destination_id ===
+          trip.destination_id
+        : action.trip_id === trip.id
   )
 
   const dates = tripActions
@@ -415,13 +421,26 @@ export async function getChannels() {
 export async function getMarketingActionsForTrip(
   tripId: string
 ) {
+  const { data: trip, error: tripError } =
+    await supabase
+      .from('trips')
+      .select('destination_id')
+      .eq('id', tripId)
+      .single()
+
+  if (tripError) {
+    throw new Error(tripError.message)
+  }
+
   const { data, error } =
     await supabase
       .from('marketing_actions')
       .select(
         '*, channels(name)'
       )
-      .eq('trip_id', tripId)
+      .or(
+        `destination_id.eq.${trip.destination_id},trip_id.eq.${tripId}`
+      )
       .is('archived_at', null)
       .order('action_date', {
         ascending: false,
@@ -464,11 +483,24 @@ export async function getMarketingRequests() {
 export async function getMarketingPlan(
   tripId: string
 ) {
+  const { data: trip, error: tripError } =
+    await supabase
+      .from('trips')
+      .select('destination_id')
+      .eq('id', tripId)
+      .single()
+
+  if (tripError) {
+    throw new Error(tripError.message)
+  }
+
   const { data, error } =
     await supabase
       .from('marketing_plan')
       .select('*')
-      .eq('trip_id', tripId)
+      .or(
+        `destination_id.eq.${trip.destination_id},trip_id.eq.${tripId}`
+      )
       .is('archived_at', null)
       .order('planned_date', {
         ascending: true,
@@ -524,11 +556,15 @@ export async function getMarketingCalendar() {
       data: actions,
       error: actionsError,
     },
+    {
+      data: destinations,
+      error: destinationsError,
+    },
   ] = await Promise.all([
     supabase
       .from('trips')
       .select(
-        'id, name, country'
+        'id, destination_id, name, country'
       ),
 
     supabase
@@ -548,6 +584,10 @@ export async function getMarketingCalendar() {
       .order('action_date', {
         ascending: false,
       }),
+
+    supabase
+      .from('destinations')
+      .select('id, name, country'),
   ])
 
   if (tripsError) {
@@ -568,10 +608,23 @@ export async function getMarketingCalendar() {
     )
   }
 
+  if (destinationsError) {
+    throw new Error(
+      destinationsError.message
+    )
+  }
+
   const tripById = new Map(
     (trips || []).map((trip) => [
       trip.id,
       trip,
+    ])
+  )
+
+  const destinationById = new Map(
+    (destinations || []).map((destination) => [
+      destination.id,
+      destination,
     ])
   )
 
@@ -585,6 +638,16 @@ export async function getMarketingCalendar() {
             plan.trip_id
           )
         : null
+
+      const destination = plan.destination_id
+        ? destinationById.get(
+            plan.destination_id
+          )
+        : trip?.destination_id
+          ? destinationById.get(
+              trip.destination_id
+            )
+          : null
 
       const status = String(
         plan.status || ''
@@ -608,15 +671,21 @@ export async function getMarketingCalendar() {
             plan.completed_date,
           plan.planned_date
         ),
+        destination_id:
+          plan.destination_id ||
+          trip?.destination_id ||
+          null,
         trip_id:
           plan.trip_id || null,
         trip_name:
+          destination?.name ||
           trip?.name ||
           firstText(
             plan.trip_name
           ) ||
           'Yleinen markkinointi',
         country:
+          destination?.country ||
           trip?.country || '',
         channel:
           firstText(
@@ -657,6 +726,17 @@ export async function getMarketingCalendar() {
           )
         : null
 
+
+      const destination = action.destination_id
+        ? destinationById.get(
+            action.destination_id
+          )
+        : trip?.destination_id
+          ? destinationById.get(
+              trip.destination_id
+            )
+          : null
+
       const channelRelation =
         firstRelation<{
           name?: string
@@ -675,15 +755,21 @@ export async function getMarketingCalendar() {
         date: firstText(
           action.action_date
         ),
+        destination_id:
+          action.destination_id ||
+          trip?.destination_id ||
+          null,
         trip_id:
           action.trip_id || null,
         trip_name:
+          destination?.name ||
           trip?.name ||
           firstText(
             action.trip_name
           ) ||
           'Yleinen markkinointi',
         country:
+          destination?.country ||
           trip?.country || '',
         channel,
         title:
@@ -732,8 +818,11 @@ function groupPlannedItems(
     }
 
     const month = item.date.slice(0, 7)
-    const tripKey = item.trip_id || item.trip_name
-    const groupKey = `${tripKey}:${month}`
+    const destinationKey =
+      item.destination_id ||
+      item.trip_id ||
+      item.trip_name
+    const groupKey = `${destinationKey}:${month}`
     const performance: MarketingCalendarPerformance = {
       id: item.id,
       date: item.date,
@@ -757,6 +846,7 @@ function groupPlannedItems(
       id: `plan-group-${groupKey}`,
       kind: 'planned',
       date: item.date,
+      destination_id: item.destination_id,
       trip_id: item.trip_id,
       trip_name: item.trip_name,
       country: item.country,

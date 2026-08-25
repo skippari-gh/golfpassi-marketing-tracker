@@ -46,8 +46,8 @@ async function createMarketingPlan(
 ) {
   'use server'
 
-  const tripId = String(
-    formData.get('trip_id') || ''
+  const destinationId = String(
+    formData.get('destination_id') || ''
   )
 
   const createdBy = String(
@@ -56,7 +56,7 @@ async function createMarketingPlan(
     ) || ''
   ).trim()
 
-  if (!tripId) {
+  if (!destinationId) {
     throw new Error(
       'Valitse kohde.'
     )
@@ -70,11 +70,33 @@ async function createMarketingPlan(
 
   const planItems = getMarketingPlanItems(formData)
 
+  const {
+    data: representativeTrip,
+    error: tripError,
+  } = await supabase
+    .from('trips')
+    .select('id')
+    .eq('destination_id', destinationId)
+    .eq('status', 'active')
+    .gte('end_date', getToday())
+    .order('start_date', {
+      ascending: true,
+    })
+    .limit(1)
+    .single()
+
+  if (tripError || !representativeTrip) {
+    throw new Error(
+      'Kohteelle ei löytynyt tulevaa lähtöä.'
+    )
+  }
+
   const { error } = await supabase
     .from('marketing_plan')
     .insert(
       planItems.map((item) => ({
-        trip_id: tripId,
+        destination_id: destinationId,
+        trip_id: representativeTrip.id,
         ...item,
         status: 'planned',
         created_by: createdBy,
@@ -89,7 +111,7 @@ async function createMarketingPlan(
 
   revalidatePath('/')
   revalidatePath(
-    `/trips/${tripId}`
+    `/trips/${representativeTrip.id}`
   )
 
   const selectedMonth =
@@ -146,9 +168,9 @@ export default async function NewPlanPage({
         )
     )
 
-  const defaultTripId =
+  const defaultDestinationId =
     requestedDestination
-      ?.trips[0].id || ''
+      ?.key || ''
 
   return (
     <>
@@ -315,7 +337,7 @@ export default async function NewPlanPage({
             }
           >
             <div className="plan-field">
-              <label htmlFor="trip_id">
+              <label htmlFor="destination_id">
                 Kohde{' '}
                 <span className="required-mark">
                   *
@@ -323,10 +345,10 @@ export default async function NewPlanPage({
               </label>
 
               <select
-                id="trip_id"
-                name="trip_id"
+                id="destination_id"
+                name="destination_id"
                 defaultValue={
-                  defaultTripId
+                  defaultDestinationId
                 }
                 required
               >
@@ -337,7 +359,7 @@ export default async function NewPlanPage({
                 {destinations.map((destination) => (
                   <option
                     key={destination.key}
-                    value={destination.trips[0].id}
+                    value={destination.key}
                   >
                     {destination.name} ·{' '}
                     {destination.country}

@@ -34,6 +34,9 @@ export default async function NewMarketingPlanPage({
     )
   }
 
+  const destinationId =
+    trip.destination_id
+
   async function createPlan(formData: FormData) {
     'use server'
 
@@ -47,6 +50,7 @@ export default async function NewMarketingPlanPage({
       .from('marketing_plan')
       .insert(
         planItems.map((item) => ({
+          destination_id: destinationId,
           trip_id: id,
           ...item,
           status: 'planned',
@@ -85,8 +89,8 @@ export default async function NewMarketingPlanPage({
         </p>
 
         <p className="meta">
-          Lisää kaikki matkalle suunnitellut kanavat samalla kertaa.
-          Ne näkyvät kalenterissa yhdellä matkakortilla.
+          Lisää kaikki kohteelle suunnitellut kanavat samalla kertaa.
+          Ne näkyvät kalenterissa yhdellä kohdekortilla.
         </p>
 
         <form action={createPlan}>
