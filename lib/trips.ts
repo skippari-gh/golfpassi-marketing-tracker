@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { areTripsLikelyDuplicates } from './trip-identity'
 
 export type TripWithPriority = {
   id: string
@@ -9,6 +10,8 @@ export type TripWithPriority = {
   end_date: string
   status: string
   url?: string | null
+  source_key?: string | null
+  source_type?: string | null
   last_marketed_at?: string | null
   channels_used: string[]
   days_since_marketed: number
@@ -269,6 +272,71 @@ function scoreTrip(
   }
 }
 
+function getTripDataScore(
+  trip: TripWithPriority
+) {
+  let score = 0
+
+  if (trip.status === 'active') {
+    score += 1000
+  }
+
+  if (trip.last_marketed_at) {
+    score += 500
+  }
+
+  score +=
+    trip.channels_used.length * 20
+
+  if (trip.source_key) {
+    score += 100
+  }
+
+  if (trip.url) {
+    score += 10
+  }
+
+  return score
+}
+
+function deduplicateTripRows(
+  trips: TripWithPriority[]
+) {
+  const uniqueTrips:
+    TripWithPriority[] = []
+
+  for (const trip of trips) {
+    const duplicateIndex =
+      uniqueTrips.findIndex(
+        (existingTrip) =>
+          areTripsLikelyDuplicates(
+            existingTrip,
+            trip
+          )
+      )
+
+    if (duplicateIndex < 0) {
+      uniqueTrips.push(trip)
+      continue
+    }
+
+    if (
+      getTripDataScore(trip) >
+      getTripDataScore(
+        uniqueTrips[
+          duplicateIndex
+        ]
+      )
+    ) {
+      uniqueTrips[
+        duplicateIndex
+      ] = trip
+    }
+  }
+
+  return uniqueTrips
+}
+
 export async function getTripsWithPriority() {
   const {
     data: trips,
@@ -301,13 +369,16 @@ export async function getTripsWithPriority() {
   }
 
   /*
-   * Mitään matkoja ei suodateta pois.
-   * Kaikki trips-taulun matkat palautetaan.
+   * Eri lähtöpäivät säilyvät erillisinä.
+   * Täsmälleen sama lähtö palautetaan vain kerran,
+   * vaikka tietokannassa olisi vielä vanha kaksoisrivi.
    */
-  return (trips || []).map((trip) =>
-    scoreTrip(
-      trip,
-      actions || []
+  return deduplicateTripRows(
+    (trips || []).map((trip) =>
+      scoreTrip(
+        trip,
+        actions || []
+      )
     )
   )
 }

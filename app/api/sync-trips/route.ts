@@ -2,6 +2,10 @@ import * as cheerio from 'cheerio'
 import {
   supabaseAdmin as supabase,
 } from '../../../lib/supabase-admin'
+import {
+  getTripNameSimilarity,
+  normalizeTripIdentityText,
+} from '../../../lib/trip-identity'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -53,7 +57,14 @@ type DuplicateTrip = {
 
 type ExistingTrip = {
   id: string
+  name: string
+  country: string
+  start_date: string
+  end_date: string
+  url: string | null
+  source_url: string | null
   source_key: string | null
+  source_type: string | null
 }
 
 const SOURCES: TripSource[] = [
@@ -1008,6 +1019,22 @@ function getDuplicateKey(
   ].join('|')
 }
 
+function getNameDuplicateKey(
+  trip: ScrapedTrip
+) {
+  const url =
+    new URL(trip.url)
+
+  return [
+    getCountrySlugFromUrl(url),
+    normalizeTripIdentityText(
+      trip.name
+    ),
+    trip.start_date,
+    trip.end_date,
+  ].join('|')
+}
+
 function getPermanentSourceKey(
   trip: ScrapedTrip
 ) {
@@ -1055,27 +1082,49 @@ function deduplicateTrips(
   trips: ScrapedTrip[]
 ) {
   const uniqueTrips =
-    new Map<
-      string,
-      ScrapedTrip
-    >()
+    new Map<string, ScrapedTrip>()
+
+  const canonicalKeyByAlias =
+    new Map<string, string>()
 
   const duplicates:
     DuplicateTrip[] = []
 
   for (const trip of trips) {
-    const duplicateKey =
+    const urlDuplicateKey =
       getDuplicateKey(trip)
+
+    const nameDuplicateKey =
+      getNameDuplicateKey(trip)
+
+    const canonicalKey =
+      canonicalKeyByAlias.get(
+        urlDuplicateKey
+      ) ||
+      canonicalKeyByAlias.get(
+        nameDuplicateKey
+      ) ||
+      urlDuplicateKey
 
     const existing =
       uniqueTrips.get(
-        duplicateKey
+        canonicalKey
       )
 
     if (!existing) {
       uniqueTrips.set(
-        duplicateKey,
+        canonicalKey,
         trip
+      )
+
+      canonicalKeyByAlias.set(
+        urlDuplicateKey,
+        canonicalKey
+      )
+
+      canonicalKeyByAlias.set(
+        nameDuplicateKey,
+        canonicalKey
       )
 
       continue
@@ -1108,7 +1157,7 @@ function deduplicateTrips(
       })
 
       uniqueTrips.set(
-        duplicateKey,
+        canonicalKey,
         trip
       )
     } else {
@@ -1124,6 +1173,16 @@ function deduplicateTrips(
           trip.source_type,
       })
     }
+
+    canonicalKeyByAlias.set(
+      urlDuplicateKey,
+      canonicalKey
+    )
+
+    canonicalKeyByAlias.set(
+      nameDuplicateKey,
+      canonicalKey
+    )
   }
 
   const deduplicated =
@@ -1291,6 +1350,231 @@ async function finishSyncRun(
   }
 }
 
+function getExistingTripMatchScore(
+  existingTrip: ExistingTrip,
+  scrapedTrip: ScrapedTrip
+) {
+  if (
+    existingTrip.start_date !==
+      scrapedTrip.start_date ||
+    existingTrip.end_date !==
+      scrapedTrip.end_date
+  ) {
+    return 0
+  }
+
+  const scrapedCountry =
+    getCountryFromUrl(
+      scrapedTrip.url
+    )
+
+  if (
+    normalizeTripIdentityText(
+      existingTrip.country
+    ) !==
+    normalizeTripIdentityText(
+      scrapedCountry
+    )
+  ) {
+    return 0
+  }
+
+  const existingUrls = [
+    existingTrip.url,
+    existingTrip.source_url,
+  ].filter(
+    (url): url is string =>
+      Boolean(url)
+  )
+
+  for (const existingUrl of existingUrls) {
+    try {
+      if (
+        getTripIdentity(
+          new URL(existingUrl)
+        ) ===
+        getTripIdentity(
+          new URL(
+            scrapedTrip.url
+          )
+        )
+      ) {
+        return 200
+      }
+    } catch {
+      // Vanhat käsin lisätyt URL-osoitteet
+      // voivat olla puutteellisia.
+    }
+  }
+
+  return getTripNameSimilarity(
+    existingTrip.name,
+    scrapedTrip.name
+  )
+}
+
+function findMatchingScrapedTrip(
+  existingTrip: ExistingTrip,
+  scrapedTrips: ScrapedTrip[]
+) {
+  const matches =
+    scrapedTrips
+      .map((trip) => ({
+        trip,
+        score:
+          getExistingTripMatchScore(
+            existingTrip,
+            trip
+          ),
+      }))
+      .filter(
+        (match) =>
+          match.score >= 80
+      )
+      .sort(
+        (a, b) =>
+          b.score - a.score
+      )
+
+  if (matches.length === 0) {
+    return null
+  }
+
+  if (
+    matches.length > 1 &&
+    matches[0].score ===
+      matches[1].score
+  ) {
+    return null
+  }
+
+  return matches[0].trip
+}
+
+async function moveTripReferences(
+  duplicateId: string,
+  canonicalId: string
+) {
+  const relatedTables = [
+    'marketing_actions',
+    'marketing_plan',
+    'marketing_requests',
+  ] as const
+
+  for (const table of relatedTables) {
+    const { error } =
+      await supabase
+        .from(table)
+        .update({
+          trip_id: canonicalId,
+        })
+        .eq(
+          'trip_id',
+          duplicateId
+        )
+
+    if (error) {
+      throw new Error(
+        `Matkan ${duplicateId} tietojen siirto taulussa ${table} epäonnistui: ${error.message}`
+      )
+    }
+  }
+}
+
+async function mergeExistingDuplicates(
+  existingTrips: ExistingTrip[],
+  scrapedTrips: ScrapedTrip[]
+) {
+  const canonicalBySourceKey =
+    new Map(
+      existingTrips
+        .filter(
+          (trip) =>
+            trip.source_key &&
+            scrapedTrips.some(
+              (scrapedTrip) =>
+                scrapedTrip.source_key ===
+                trip.source_key
+            )
+        )
+        .map((trip) => [
+          trip.source_key!,
+          trip,
+        ])
+    )
+
+  const canonicalIds = new Set(
+    Array.from(
+      canonicalBySourceKey.values()
+    ).map((trip) => trip.id)
+  )
+
+  const mergedTripIds =
+    new Set<string>()
+
+  let skippedCount = 0
+
+  for (const existingTrip of existingTrips) {
+    if (
+      canonicalIds.has(
+        existingTrip.id
+      )
+    ) {
+      continue
+    }
+
+    const matchingScrapedTrip =
+      findMatchingScrapedTrip(
+        existingTrip,
+        scrapedTrips
+      )
+
+    if (!matchingScrapedTrip) {
+      continue
+    }
+
+    const canonicalTrip =
+      canonicalBySourceKey.get(
+        matchingScrapedTrip.source_key
+      )
+
+    if (!canonicalTrip) {
+      skippedCount += 1
+      continue
+    }
+
+    await moveTripReferences(
+      existingTrip.id,
+      canonicalTrip.id
+    )
+
+    const { error: deleteError } =
+      await supabase
+        .from('trips')
+        .delete()
+        .eq('id', existingTrip.id)
+
+    if (deleteError) {
+      throw new Error(
+        `Yhdistetyn kaksoismatkan poistaminen epäonnistui: ${deleteError.message}`
+      )
+    }
+
+    mergedTripIds.add(
+      existingTrip.id
+    )
+  }
+
+  return {
+    merged_count:
+      mergedTripIds.size,
+    merge_skipped_count:
+      skippedCount,
+    merged_trip_ids:
+      mergedTripIds,
+  }
+}
+
 async function saveTripsToSupabase(
   trips: ScrapedTrip[]
 ) {
@@ -1304,14 +1588,7 @@ async function saveTripsToSupabase(
     } = await supabase
       .from('trips')
       .select(
-        'id, source_key'
-      )
-      .in(
-        'source_type',
-        [
-          'pelimatka',
-          'kurssimatka',
-        ]
+        'id, name, country, start_date, end_date, url, source_url, source_key, source_type'
       )
 
     if (existingError) {
@@ -1324,9 +1601,18 @@ async function saveTripsToSupabase(
       (existingData ||
         []) as ExistingTrip[]
 
+    const trackedExistingTrips =
+      existingTrips.filter(
+        (trip) =>
+          trip.source_type ===
+            'pelimatka' ||
+          trip.source_type ===
+            'kurssimatka'
+      )
+
     const existingKeySet =
       new Set(
-        existingTrips
+        trackedExistingTrips
           .map(
             (trip) =>
               trip.source_key
@@ -1419,13 +1705,38 @@ async function saveTripsToSupabase(
       )
     }
 
+    const {
+      data: refreshedData,
+      error: refreshedError,
+    } = await supabase
+      .from('trips')
+      .select(
+        'id, name, country, start_date, end_date, url, source_url, source_key, source_type'
+      )
+
+    if (refreshedError) {
+      throw new Error(
+        `Matkojen yhdistämistietojen haku epäonnistui: ${refreshedError.message}`
+      )
+    }
+
+    const mergeResult =
+      await mergeExistingDuplicates(
+        (refreshedData ||
+          []) as ExistingTrip[],
+        trips
+      )
+
     const missingIds =
-      existingTrips
+      trackedExistingTrips
         .filter((trip) => {
           return (
             trip.source_key &&
             !currentKeySet.has(
               trip.source_key
+            ) &&
+            !mergeResult.merged_trip_ids.has(
+              trip.id
             )
           )
         })
@@ -1471,6 +1782,12 @@ async function saveTripsToSupabase(
 
     missing_count:
       missingIds.length,
+
+    merged_count:
+      mergeResult.merged_count,
+
+    merge_skipped_count:
+      mergeResult.merge_skipped_count,
   }
 }
 
@@ -1697,6 +2014,10 @@ export async function GET(
           saveResult.updated_count,
         missing_count:
           saveResult.missing_count,
+        merged_count:
+          saveResult.merged_count,
+        merge_skipped_count:
+          saveResult.merge_skipped_count,
       })
     )
 
