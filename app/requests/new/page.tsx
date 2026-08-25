@@ -1,346 +1,134 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
+import { groupTripsByDestination } from '../../../lib/trip-destinations'
 import { getTripsWithPriority } from '../../../lib/trips'
 import { supabase } from '../../../lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
-type ParsedDate = {
-  day: number
-  month: number
-  year: number
+function getToday() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Helsinki',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
 }
 
-type TripItem = Awaited<
-  ReturnType<typeof getTripsWithPriority>
->[number]
+async function createMarketingRequest(formData: FormData) {
+  'use server'
 
-function parseDate(
-  value?: string | null
-): ParsedDate | null {
-  if (!value) {
-    return null
+  const destinationId = String(formData.get('destination_id') || '')
+  const requesterName = String(formData.get('requester_name') || '').trim()
+  const requestText = String(formData.get('request_text') || '').trim()
+  const priority = formData.get('urgent') === 'on' ? 'high' : 'normal'
+
+  if (!destinationId || !requesterName || !requestText) {
+    throw new Error('Valitse kohde ja täytä nimi sekä markkinointipyyntö.')
   }
 
-  const match = value.match(
-    /^(\d{4})-(\d{2})-(\d{2})/
-  )
+  const { data: representativeTrip, error: tripError } = await supabase
+    .from('trips')
+    .select('id')
+    .eq('destination_id', destinationId)
+    .eq('status', 'active')
+    .gte('end_date', getToday())
+    .order('start_date', { ascending: true })
+    .limit(1)
+    .single()
 
-  if (!match) {
-    return null
+  if (tripError || !representativeTrip) {
+    throw new Error('Kohteelle ei löytynyt tulevaa lähtöä.')
   }
 
-  return {
-    year: Number(match[1]),
-    month: Number(match[2]),
-    day: Number(match[3]),
-  }
-}
+  const { error } = await supabase
+    .from('marketing_requests')
+    .insert({
+      destination_id: destinationId,
+      trip_id: representativeTrip.id,
+      requester_name: requesterName,
+      request_text: requestText,
+      priority,
+      desired_date: null,
+      status: 'open',
+    })
 
-function formatDateRange(
-  startValue: string,
-  endValue: string
-) {
-  const start = parseDate(startValue)
-  const end = parseDate(endValue)
+  if (error) throw new Error(error.message)
 
-  if (!start || !end) {
-    return `${startValue}–${endValue}`
-  }
-
-  if (
-    start.year === end.year &&
-    start.month === end.month &&
-    start.day === end.day
-  ) {
-    return `${start.day}.${start.month}.${start.year}`
-  }
-
-  if (
-    start.year === end.year &&
-    start.month === end.month
-  ) {
-    return `${start.day}.–${end.day}.${end.month}.${end.year}`
-  }
-
-  if (start.year === end.year) {
-    return `${start.day}.${start.month}.–${end.day}.${end.month}.${end.year}`
-  }
-
-  return `${start.day}.${start.month}.${start.year}–${end.day}.${end.month}.${end.year}`
-}
-
-function normalizeText(value: string) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/&/g, ' ja ')
-    .replace(/[^a-z0-9åäö]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function getTripDuplicateKey(
-  trip: TripItem
-) {
-  const normalizedName =
-    normalizeText(trip.name)
-
-  const normalizedCountry =
-    normalizeText(trip.country)
-
-  return [
-    normalizedName,
-    normalizedCountry,
-    trip.start_date,
-    trip.end_date,
-  ].join('|')
-}
-
-function removeDuplicateTrips(
-  trips: TripItem[]
-) {
-  const uniqueTrips = new Map<
-    string,
-    TripItem
-  >()
-
-  for (const trip of trips) {
-    const duplicateKey =
-      getTripDuplicateKey(trip)
-
-    if (!uniqueTrips.has(duplicateKey)) {
-      uniqueTrips.set(
-        duplicateKey,
-        trip
-      )
-    }
-  }
-
-  return Array.from(
-    uniqueTrips.values()
-  )
+  revalidatePath('/')
+  redirect('/')
 }
 
 export default async function NewRequestPage() {
-  const allTrips =
-    await getTripsWithPriority()
-
-  const filteredTrips = allTrips
-    .filter(
-      (trip) =>
-        trip.status === 'active'
+  const allTrips = await getTripsWithPriority()
+  const destinations = groupTripsByDestination(
+    allTrips.filter(
+      (trip) => trip.status === 'active' && trip.days_to_start >= 0
     )
-    .filter(
-      (trip) =>
-        trip.days_to_start >= 0
-    )
-    .sort((a, b) => {
-      const dateComparison =
-        a.start_date.localeCompare(
-          b.start_date
-        )
-
-      if (dateComparison !== 0) {
-        return dateComparison
-      }
-
-      return a.name.localeCompare(
-        b.name,
-        'fi'
-      )
-    })
-
-  const trips =
-    removeDuplicateTrips(
-      filteredTrips
-    )
-
-  async function createRequest(
-    formData: FormData
-  ) {
-    'use server'
-
-    const tripId = String(
-      formData.get('trip_id') || ''
-    )
-
-    const requesterName = String(
-      formData.get(
-        'requester_name'
-      ) || ''
-    ).trim()
-
-    const requestText = String(
-      formData.get(
-        'request_text'
-      ) || ''
-    ).trim()
-
-    const priority = String(
-      formData.get('priority') ||
-        'normal'
-    )
-
-    const desiredDate = String(
-      formData.get(
-        'desired_date'
-      ) || ''
-    )
-
-    if (
-      !tripId ||
-      !requesterName ||
-      !requestText
-    ) {
-      throw new Error(
-        'Täytä matka, nimi ja markkinointitoive.'
-      )
-    }
-
-    const { error } = await supabase
-      .from('marketing_requests')
-      .insert({
-        trip_id: tripId,
-        requester_name:
-          requesterName,
-        request_text:
-          requestText,
-        priority,
-        desired_date:
-          desiredDate || null,
-        status: 'open',
-      })
-
-    if (error) {
-      throw new Error(
-        error.message
-      )
-    }
-
-    redirect('/')
-  }
+  ).sort((a, b) => a.name.localeCompare(b.name, 'fi'))
 
   return (
-    <main className="container">
+    <main className="container request-page">
       <nav className="nav">
-        <Link href="/">
-          Nosta seuraavaksi
-        </Link>
-
-        <Link href="/trips">
-          Matkat
-        </Link>
-
-        <Link href="/actions/new">
-          Lisää merkintä
-        </Link>
+        <Link href="/">← Takaisin etusivulle</Link>
+        <Link href="/trips">Matkat</Link>
       </nav>
 
-      <h1>
-        Uusi markkinointitoive
-      </h1>
+      <article className="card request-form-card">
+        <div className="request-form-heading">
+          <span className="request-form-kicker">Nopea pyyntö markkinoinnille</span>
+          <h1>Pyydä markkinointia</h1>
+          <p className="meta">
+            Kerro, mitä kohdetta pitäisi nostaa. Pyyntö näkyy heti markkinoinnin etusivulla.
+          </p>
+        </div>
 
-      <article className="card">
-        <form action={createRequest}>
+        <form className="request-form" action={createMarketingRequest}>
           <label>
-            Matka
-
-            <select
-              name="trip_id"
-              required
-              defaultValue=""
-            >
-              <option
-                value=""
-                disabled
-              >
-                Valitse matka
-              </option>
-
-              {trips.map((trip) => (
-                <option
-                  key={trip.id}
-                  value={trip.id}
-                >
-                  {trip.name} –{' '}
-                  {trip.country} –{' '}
-                  {formatDateRange(
-                    trip.start_date,
-                    trip.end_date
-                  )}
+            Kohde
+            <select name="destination_id" defaultValue="" required>
+              <option value="" disabled>Valitse kohde</option>
+              {destinations.map((destination) => (
+                <option key={destination.key} value={destination.key}>
+                  {destination.name} · {destination.country}
                 </option>
               ))}
             </select>
           </label>
 
           <label>
-            Toivojan nimi
-
+            Oma nimi
             <input
               type="text"
               name="requester_name"
-              placeholder="Esimerkiksi Petri"
+              placeholder="Kirjoita nimesi"
+              autoComplete="name"
               required
             />
           </label>
 
           <label>
-            Markkinointitoive
-
+            Mitä pitäisi markkinoida?
             <textarea
               name="request_text"
-              rows={6}
-              placeholder="Mitä matkasta pitäisi markkinoida ja missä kanavassa?"
+              rows={5}
+              placeholder="Esimerkiksi: Nosta kohdetta ensi viikon uutiskirjeessä ja Facebookissa."
               required
             />
           </label>
 
-          <label>
-            Kiireellisyys
-
-            <select
-              name="priority"
-              defaultValue="normal"
-            >
-              <option value="low">
-                Matala
-              </option>
-
-              <option value="normal">
-                Normaali
-              </option>
-
-              <option value="high">
-                Kiireellinen
-              </option>
-            </select>
-          </label>
-
-          <label>
-            Toivottu päivämäärä
-
-            <input
-              type="date"
-              name="desired_date"
-            />
+          <label className="request-urgent-field">
+            <input type="checkbox" name="urgent" />
+            <span>
+              <strong>Kiireellinen</strong>
+              <small>Valitse vain, jos pyyntö vaatii nopeaa reagointia.</small>
+            </span>
           </label>
 
           <div className="actions">
-            <button
-              className="button"
-              type="submit"
-            >
-              Tallenna toive
-            </button>
-
-            <Link
-              className="button secondary"
-              href="/"
-            >
-              Peruuta
-            </Link>
+            <button className="button" type="submit">Lähetä pyyntö</button>
+            <Link className="button secondary" href="/">Peruuta</Link>
           </div>
         </form>
       </article>
