@@ -17,10 +17,12 @@ import {
 export const dynamic = 'force-dynamic'
 
 type CalendarView = 'all' | 'planned' | 'done'
+type CalendarLayout = 'list' | 'month'
 
 type HomeSearchParams = Promise<{
   month?: string | string[]
   view?: string | string[]
+  layout?: string | string[]
 }>
 
 function getSingleParam(
@@ -75,6 +77,10 @@ function normalizeView(
   }
 
   return 'all'
+}
+
+function normalizeLayout(value: string | undefined): CalendarLayout {
+  return value === 'month' ? 'month' : 'list'
 }
 
 function changeMonth(
@@ -132,9 +138,128 @@ function formatDate(dateValue: string) {
 
 function getCalendarUrl(
   month: string,
-  view: CalendarView
+  view: CalendarView,
+  layout: CalendarLayout
 ) {
-  return `/?month=${month}&view=${view}`
+  return `/?month=${month}&view=${view}&layout=${layout}`
+}
+
+function getMonthDates(monthValue: string) {
+  const [year, month] = monthValue.split('-').map(Number)
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  const firstWeekday = (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7
+
+  return [
+    ...Array.from({ length: firstWeekday }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, index) => {
+      const day = index + 1
+      return `${monthValue}-${String(day).padStart(2, '0')}`
+    }),
+  ]
+}
+
+function MonthCalendar({
+  month,
+  plannedItems,
+  completedItems,
+  today,
+}: {
+  month: string
+  plannedItems: MarketingCalendarItem[]
+  completedItems: MarketingCalendarItem[]
+  today: string
+}) {
+  const eventsByDate = new Map<string, Array<{
+    id: string
+    kind: 'planned' | 'done'
+    destination: string
+    channel: string
+    title: string
+    tripId: string | null
+    overdue: boolean
+  }>>()
+
+  const addEvent = (
+    date: string,
+    event: NonNullable<ReturnType<typeof eventsByDate.get>>[number]
+  ) => {
+    const events = eventsByDate.get(date) || []
+    events.push(event)
+    eventsByDate.set(date, events)
+  }
+
+  for (const item of plannedItems) {
+    if (item.kind !== 'planned') continue
+    for (const performance of item.performances) {
+      addEvent(performance.date, {
+        id: performance.id,
+        kind: 'planned',
+        destination: item.trip_name,
+        channel: performance.channel,
+        title: performance.title,
+        tripId: item.trip_id,
+        overdue: performance.date < today,
+      })
+    }
+  }
+
+  for (const item of completedItems) {
+    if (item.kind !== 'done') continue
+    addEvent(item.date, {
+      id: item.id,
+      kind: 'done',
+      destination: item.trip_name,
+      channel: item.channel,
+      title: item.title,
+      tripId: item.trip_id,
+      overdue: false,
+    })
+  }
+
+  return (
+    <div className="month-calendar-wrapper">
+      <div className="month-calendar" aria-label={`${formatMonth(month)} kalenteri`}>
+        {['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'].map((weekday) => (
+          <div className="month-calendar-weekday" key={weekday}>{weekday}</div>
+        ))}
+
+        {getMonthDates(month).map((date, index) => {
+          if (!date) {
+            return <div className="month-calendar-day empty" key={`empty-${index}`} aria-hidden="true" />
+          }
+
+          const events = eventsByDate.get(date) || []
+          const dayNumber = Number(date.slice(-2))
+
+          return (
+            <section className={`month-calendar-day${date === today ? ' today' : ''}`} key={date}>
+              <div className="month-calendar-day-number">
+                <span>{dayNumber}</span>
+                {date === today && <small>Tänään</small>}
+              </div>
+
+              <div className="month-calendar-events">
+                {events.map((event) => (
+                  <article
+                    className={`month-calendar-event ${event.kind}${event.overdue ? ' overdue' : ''}`}
+                    key={`${event.kind}-${event.id}`}
+                  >
+                    <span>{event.kind === 'done' ? 'Tehty' : event.overdue ? 'Myöhässä' : event.channel}</span>
+                    {event.tripId ? (
+                      <Link href={`/trips/${event.tripId}`}>{event.destination}</Link>
+                    ) : (
+                      <strong>{event.destination}</strong>
+                    )}
+                    <small>{event.title}</small>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function compactPriorityReason(
@@ -400,6 +525,10 @@ export default async function Home({
 
   const selectedView = normalizeView(
     getSingleParam(resolvedSearchParams.view)
+  )
+
+  const selectedLayout = normalizeLayout(
+    getSingleParam(resolvedSearchParams.layout)
   )
 
   const previousMonth = changeMonth(
@@ -1064,6 +1193,31 @@ export default async function Home({
           color: #ffffff;
         }
 
+        .calendar-layout-switch {
+          display: inline-flex;
+          padding: 3px;
+          border: 1px solid #bfced8;
+          border-radius: 8px;
+          background: #ffffff;
+        }
+
+        .calendar-layout-button {
+          display: inline-flex;
+          align-items: center;
+          min-height: 29px;
+          padding: 5px 10px;
+          border-radius: 5px;
+          color: var(--gp-muted);
+          font-size: 11px;
+          font-weight: 850;
+          text-decoration: none;
+        }
+
+        .calendar-layout-button.active {
+          background: var(--gp-blue);
+          color: #ffffff;
+        }
+
         .current-month-link {
           color: var(--gp-blue);
           font-size: 12px;
@@ -1080,6 +1234,124 @@ export default async function Home({
           flex-wrap: wrap;
           gap: 7px;
           margin-bottom: 19px;
+        }
+
+        .month-calendar-wrapper {
+          overflow-x: auto;
+          padding-bottom: 5px;
+        }
+
+        .month-calendar {
+          display: grid;
+          grid-template-columns: repeat(7, minmax(125px, 1fr));
+          min-width: 875px;
+          border-top: 1px solid #dce5eb;
+          border-left: 1px solid #dce5eb;
+          background: #ffffff;
+        }
+
+        .month-calendar-weekday {
+          padding: 8px 9px;
+          border-right: 1px solid #dce5eb;
+          border-bottom: 1px solid #dce5eb;
+          background: var(--gp-light-blue);
+          color: var(--gp-navy);
+          font-size: 11px;
+          font-weight: 900;
+          text-align: center;
+          text-transform: uppercase;
+        }
+
+        .month-calendar-day {
+          min-height: 145px;
+          padding: 8px;
+          border-right: 1px solid #dce5eb;
+          border-bottom: 1px solid #dce5eb;
+          background: #ffffff;
+        }
+
+        .month-calendar-day.empty {
+          background: #f5f7f8;
+        }
+
+        .month-calendar-day.today {
+          background: #f3fbff;
+          box-shadow: inset 0 0 0 2px var(--gp-blue);
+        }
+
+        .month-calendar-day-number {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 5px;
+          margin-bottom: 7px;
+          color: var(--gp-navy);
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .month-calendar-day-number small {
+          color: var(--gp-blue);
+          font-size: 9px;
+          text-transform: uppercase;
+        }
+
+        .month-calendar-events {
+          display: grid;
+          gap: 5px;
+        }
+
+        .month-calendar-event {
+          display: grid;
+          gap: 2px;
+          padding: 6px;
+          border-left: 3px solid var(--gp-orange);
+          border-radius: 5px;
+          background: #fff7ec;
+        }
+
+        .month-calendar-event.done {
+          border-left-color: var(--gp-blue);
+          background: #eef8fd;
+        }
+
+        .month-calendar-event.overdue {
+          border-left-color: var(--gp-red);
+          background: var(--gp-red-light);
+        }
+
+        .month-calendar-event > span {
+          color: var(--gp-muted);
+          font-size: 8px;
+          font-weight: 900;
+          letter-spacing: .03em;
+          text-transform: uppercase;
+        }
+
+        .month-calendar-event > a,
+        .month-calendar-event > strong {
+          overflow: hidden;
+          color: var(--gp-navy);
+          font-size: 10px;
+          font-weight: 850;
+          line-height: 1.25;
+          text-decoration: none;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .month-calendar-event > a:hover {
+          color: var(--gp-blue);
+        }
+
+        .month-calendar-event > small {
+          display: -webkit-box;
+          overflow: hidden;
+          color: var(--gp-text);
+          font-size: 9px;
+          line-height: 1.3;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
         }
 
         .summary-pill {
@@ -1643,7 +1915,8 @@ export default async function Home({
                     className="month-button"
                     href={getCalendarUrl(
                       previousMonth,
-                      selectedView
+                      selectedView,
+                      selectedLayout
                     )}
                     aria-label="Edellinen kuukausi"
                   >
@@ -1658,7 +1931,8 @@ export default async function Home({
                     className="month-button"
                     href={getCalendarUrl(
                       nextMonth,
-                      selectedView
+                      selectedView,
+                      selectedLayout
                     )}
                     aria-label="Seuraava kuukausi"
                   >
@@ -1676,7 +1950,8 @@ export default async function Home({
                       }`}
                       href={getCalendarUrl(
                         selectedMonth,
-                        'all'
+                        'all',
+                        selectedLayout
                       )}
                     >
                       Kaikki
@@ -1690,7 +1965,8 @@ export default async function Home({
                       }`}
                       href={getCalendarUrl(
                         selectedMonth,
-                        'planned'
+                        'planned',
+                        selectedLayout
                       )}
                     >
                       Tulossa
@@ -1704,10 +1980,26 @@ export default async function Home({
                       }`}
                       href={getCalendarUrl(
                         selectedMonth,
-                        'done'
+                        'done',
+                        selectedLayout
                       )}
                     >
                       Tehdyt
+                    </Link>
+                  </div>
+
+                  <div className="calendar-layout-switch" aria-label="Kalenterin näkymä">
+                    <Link
+                      className={`calendar-layout-button ${selectedLayout === 'list' ? 'active' : ''}`}
+                      href={getCalendarUrl(selectedMonth, selectedView, 'list')}
+                    >
+                      Lista
+                    </Link>
+                    <Link
+                      className={`calendar-layout-button ${selectedLayout === 'month' ? 'active' : ''}`}
+                      href={getCalendarUrl(selectedMonth, selectedView, 'month')}
+                    >
+                      Koko kuukausi
                     </Link>
                   </div>
 
@@ -1716,7 +2008,8 @@ export default async function Home({
                       className="current-month-link"
                       href={getCalendarUrl(
                         currentMonth,
-                        selectedView
+                        selectedView,
+                        selectedLayout
                       )}
                     >
                       Palaa tähän kuukauteen
@@ -1741,6 +2034,15 @@ export default async function Home({
                 )}
               </div>
 
+              {selectedLayout === 'month' ? (
+                <MonthCalendar
+                  month={selectedMonth}
+                  plannedItems={showPlanned ? plannedItems : []}
+                  completedItems={showCompleted ? completedItems : []}
+                  today={today}
+                />
+              ) : (
+                <>
               {showPlanned && (
                 <div className="calendar-section">
                   <div className="calendar-section-heading">
@@ -1806,6 +2108,8 @@ export default async function Home({
                     </div>
                   )}
                 </div>
+              )}
+                </>
               )}
             </div>
           </section>
