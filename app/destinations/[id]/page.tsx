@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { priorityReason } from '../../../lib/priority'
 import { supabase } from '../../../lib/supabase'
+import { getTripDestination } from '../../../lib/trip-destinations'
 import {
   getTripsWithPriority,
   getMarketingActionsForTrip,
@@ -54,18 +55,14 @@ async function markPlanDone(formData: FormData) {
 
 export default async function DestinationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: destinationId } = await params
-  const { data: destination, error: destinationError } = await supabase
-    .from('destinations')
-    .select('id, name, country')
-    .eq('id', destinationId)
-    .maybeSingle()
-
-  if (destinationError || !destination) notFound()
-
   const allTrips = await getTripsWithPriority()
   const departures = allTrips
     .filter((trip) => trip.destination_id === destinationId)
     .sort((a, b) => a.start_date.localeCompare(b.start_date))
+
+  if (departures.length === 0) notFound()
+
+  const destination = getTripDestination(departures[0])
   const activeDepartures = departures.filter(
     (trip) => trip.status === 'active' && trip.days_to_start >= 0
   )
@@ -102,7 +99,7 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
         {priorityTrip && <span className="score">Prioriteetti {priorityTrip.priority_score}</span>}
         <h1>{destination.name}</h1>
         <p>
-          {destination.country} · {activeDepartures.length}{' '}
+          {departures[0].country} · {activeDepartures.length}{' '}
           {activeDepartures.length === 1 ? 'tuleva lähtö' : 'tulevaa lähtöä'}
         </p>
         {priorityTrip && (
