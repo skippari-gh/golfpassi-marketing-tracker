@@ -35,6 +35,11 @@ function formatDateRange(startValue: string, endValue: string) {
   return `${start.day}.${start.month}.${start.year}–${end.day}.${end.month}.${end.year}`
 }
 
+function formatDate(value?: string | null) {
+  const date = parseDate(value)
+  return date ? `${date.day}.${date.month}.${date.year}` : value || '–'
+}
+
 async function markPlanDone(formData: FormData) {
   'use server'
 
@@ -125,6 +130,39 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
     cancelled: 'Peruttu',
   } as const
 
+  const nextPlannedPerformance = marketingPlan.find(
+    (plan: any) => plan.status === 'planned' || plan.status === 'in_progress'
+  )
+  const latestCompletedPerformance = actions[0]
+  const plannedCount = marketingPlan.filter(
+    (plan: any) => plan.status === 'planned' || plan.status === 'in_progress'
+  ).length
+  const completedCount = marketingPlan.filter(
+    (plan: any) => plan.status === 'done'
+  ).length
+  const coveredChannels = new Set(
+    [
+      ...marketingPlan
+        .filter((plan: any) => plan.status !== 'cancelled')
+        .map((plan: any) => String(plan.channel || '').trim().toLocaleLowerCase('fi')),
+      ...actions.map((action: any) =>
+        String(action.channels?.name || '').trim().toLocaleLowerCase('fi')
+      ),
+    ].filter(Boolean)
+  )
+  const missingChannels = channels
+    .map((channel) => channel.name)
+    .filter((channel) => !coveredChannels.has(channel.trim().toLocaleLowerCase('fi')))
+  const daysToNextDeparture = activeDepartures[0]?.days_to_start
+  const departureCountdown =
+    daysToNextDeparture === undefined
+      ? 'Ei tulevia lähtöjä'
+      : daysToNextDeparture === 0
+        ? 'Lähtö tänään'
+        : daysToNextDeparture === 1
+          ? '1 päivä'
+          : `${daysToNextDeparture} päivää`
+
   return (
     <main className="container">
       <nav className="nav">
@@ -150,6 +188,59 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
           </>
         )}
       </article>
+
+      <section className="destination-summary" aria-labelledby="destination-summary-title">
+        <div className="destination-summary-heading">
+          <h2 id="destination-summary-title">Markkinointitilanne</h2>
+          <p className="meta">Kohteen tärkeimmät tiedot yhdellä silmäyksellä.</p>
+        </div>
+
+        <div className="destination-summary-grid">
+          <article className="destination-summary-card">
+            <span className="destination-summary-label">Seuraava suunniteltu</span>
+            {nextPlannedPerformance ? (
+              <>
+                <strong>{formatDate(nextPlannedPerformance.planned_date)}</strong>
+                <span>{nextPlannedPerformance.channel} · {nextPlannedPerformance.title}</span>
+              </>
+            ) : (
+              <strong>Ei suunniteltuja suoritteita</strong>
+            )}
+          </article>
+
+          <article className="destination-summary-card">
+            <span className="destination-summary-label">Viimeisin toteutunut</span>
+            {latestCompletedPerformance ? (
+              <>
+                <strong>{formatDate(latestCompletedPerformance.action_date)}</strong>
+                <span>{latestCompletedPerformance.channels?.name || 'Kanava puuttuu'} · {latestCompletedPerformance.title || 'Ei otsikkoa'}</span>
+              </>
+            ) : (
+              <strong>Ei vielä toteutuneita suoritteita</strong>
+            )}
+          </article>
+
+          <article className="destination-summary-card destination-summary-card-wide">
+            <span className="destination-summary-label">Puuttuvat kanavat</span>
+            <strong>{missingChannels.length === 0 ? 'Kaikki kanavat katettu' : `${missingChannels.length} kanavaa`}</strong>
+            <span>{missingChannels.join(', ') || 'Kohteelle on tehty tai suunniteltu sisältöä kaikissa kanavissa.'}</span>
+          </article>
+
+          <article className="destination-summary-card">
+            <span className="destination-summary-label">Suunnitelman tila</span>
+            <strong>{plannedCount} suunniteltu · {completedCount} valmis</strong>
+            <span>Yhteensä {plannedCount + completedCount} aktiivista suoritetta</span>
+          </article>
+
+          <article className="destination-summary-card destination-summary-countdown">
+            <span className="destination-summary-label">Lähimpään lähtöön</span>
+            <strong>{departureCountdown}</strong>
+            {activeDepartures[0] && (
+              <span>{formatDateRange(activeDepartures[0].start_date, activeDepartures[0].end_date)}</span>
+            )}
+          </article>
+        </div>
+      </section>
 
       <section className="departure-section">
         <div className="departure-heading">
