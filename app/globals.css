@@ -383,6 +383,49 @@ label { font-weight:700; }
   margin-top: 6px;
 }
 
+.plan-row-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.plan-edit-details {
+  min-width: max-content;
+}
+
+.plan-edit-details > summary {
+  list-style: none;
+  white-space: nowrap;
+}
+
+.plan-edit-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.plan-edit-form {
+  display: grid;
+  gap: 12px;
+  width: min(380px, 82vw);
+  margin-top: 8px;
+  padding: 18px;
+  border: 1px solid #cbd8e3;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 14px 36px rgba(0, 60, 112, .18);
+}
+
+.plan-edit-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--navy);
+  font-size: 13px;
+}
+
+.plan-edit-form textarea {
+  resize: vertical;
+}
+
 .departure-section {
   margin-top: 32px;
 }
