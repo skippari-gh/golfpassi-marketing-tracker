@@ -20,6 +20,110 @@ button, .button { border:0; background:var(--navy); color:white; border-radius:1
 table { width:100%; border-collapse:collapse; background:white; border-radius:16px; overflow:hidden; }
 th, td { text-align:left; padding:12px; border-bottom:1px solid #e6edf5; font-size:14px; }
 th { background:#f0f6fb; }
+.trips-table-wrapper {
+  overflow-x: auto;
+  border-radius: 16px;
+  background: white;
+}
+
+.trips-table {
+  min-width: 880px;
+}
+
+.trip-destination-cell {
+  padding: 0;
+}
+
+.trip-destination-details {
+  width: 100%;
+}
+
+.trip-destination-summary,
+.trip-departure-list-row {
+  display: grid;
+  grid-template-columns: minmax(250px, 2fr) minmax(110px, .8fr) minmax(90px, .65fr) minmax(150px, 1fr) minmax(110px, .8fr) minmax(80px, .55fr);
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.trip-destination-summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.trip-destination-summary::-webkit-details-marker {
+  display: none;
+}
+
+.trip-destination-summary:hover,
+.trip-destination-summary:focus-visible {
+  background: #f7fbfe;
+}
+
+.trip-destination-summary:focus-visible {
+  outline: 3px solid rgba(0, 170, 255, .3);
+  outline-offset: -3px;
+}
+
+.trip-destination-name {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.trip-destination-arrow {
+  display: inline-block;
+  color: var(--blue);
+  font-size: 24px;
+  line-height: .7;
+  transition: transform .18s ease;
+}
+
+.trip-destination-details[open] .trip-destination-arrow {
+  transform: rotate(90deg);
+}
+
+.trip-departure-rows {
+  border-top: 1px solid #dbe7f0;
+  background: #f7fbfe;
+}
+
+.trip-departure-list-row {
+  padding-left: 40px;
+  border-bottom: 1px solid #e6edf5;
+}
+
+.trip-departure-list-row:last-child {
+  border-bottom: 0;
+}
+
+.trip-departure-link {
+  color: var(--navy);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(0, 170, 255, .45);
+  text-underline-offset: 3px;
+}
+
+.trip-departure-link:hover {
+  color: var(--blue);
+}
+
+.trip-departure-label {
+  color: #607080;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.trip-date {
+  white-space: nowrap;
+}
 .form { display:grid; gap:12px; max-width:680px; }
 input, select, textarea { width:100%; padding:12px; border:1px solid #ccd8e3; border-radius:10px; font:inherit; }
 label { font-weight:700; }

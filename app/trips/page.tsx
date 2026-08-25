@@ -210,20 +210,21 @@ export default async function TripsPage({
           : 'lähtöä'}
       </p>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Kohde</th>
-            <th>Maa</th>
-            <th>Lähdöt</th>
-            <th>Seuraava lähtö</th>
-            <th>Viimeksi</th>
-            <th>Prioriteetti</th>
-          </tr>
-        </thead>
+      <div className="trips-table-wrapper">
+        <table className="trips-table">
+          <thead>
+            <tr>
+              <th>Kohde</th>
+              <th>Maa</th>
+              <th>Lähdöt</th>
+              <th>Seuraava lähtö</th>
+              <th>Viimeksi</th>
+              <th>Prioriteetti</th>
+            </tr>
+          </thead>
 
-        <tbody>
-          {destinations.map((destination) => {
+          <tbody>
+            {destinations.map((destination) => {
             const nextTrip = destination.trips[0]
 
             const lastMarketedAt =
@@ -243,62 +244,97 @@ export default async function TripsPage({
 
             return (
               <tr key={destination.key}>
-                <td>
-                  <Link
-                    href={`/trips/${nextTrip.id}`}
-                  >
-                    {destination.name}
-                  </Link>
-                </td>
-
-                <td>
-                  {destination.country}
-                </td>
-
-                <td>
-                  {destination.trips.length}{' '}
-                  {destination.trips.length === 1
-                    ? 'lähtö'
-                    : 'lähtöä'}
-                </td>
-
                 <td
-                  style={{
-                    whiteSpace: 'nowrap',
-                  }}
+                  className="trip-destination-cell"
+                  colSpan={6}
                 >
-                  {formatDateRange(
-                    nextTrip.start_date,
-                    nextTrip.end_date
-                  )}
-                </td>
+                  <details className="trip-destination-details">
+                    <summary className="trip-destination-summary">
+                      <span className="trip-destination-name">
+                        <span
+                          aria-hidden="true"
+                          className="trip-destination-arrow"
+                        >
+                          ›
+                        </span>
+                        {destination.name}
+                      </span>
 
-                <td
-                  style={{
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {formatDate(
-                    lastMarketedAt
-                  )}
-                </td>
+                      <span>{destination.country}</span>
 
-                <td>
-                  {priorityScore}
+                      <span>
+                        {destination.trips.length}{' '}
+                        {destination.trips.length === 1
+                          ? 'lähtö'
+                          : 'lähtöä'}
+                      </span>
+
+                      <span className="trip-date">
+                        {formatDateRange(
+                          nextTrip.start_date,
+                          nextTrip.end_date
+                        )}
+                      </span>
+
+                      <span className="trip-date">
+                        {formatDate(lastMarketedAt)}
+                      </span>
+
+                      <span>{priorityScore}</span>
+                    </summary>
+
+                    <div className="trip-departure-rows">
+                      {destination.trips.map((departure) => (
+                        <div
+                          className="trip-departure-list-row"
+                          key={departure.id}
+                        >
+                          <Link
+                            className="trip-departure-link"
+                            href={`/trips/${departure.id}`}
+                          >
+                            {departure.name}
+                          </Link>
+
+                          <span>{departure.country}</span>
+
+                          <span className="trip-departure-label">
+                            Lähtö
+                          </span>
+
+                          <span className="trip-date">
+                            {formatDateRange(
+                              departure.start_date,
+                              departure.end_date
+                            )}
+                          </span>
+
+                          <span className="trip-date">
+                            {formatDate(
+                              departure.last_marketed_at
+                            )}
+                          </span>
+
+                          <span>{departure.priority_score}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                 </td>
               </tr>
             )
-          })}
+            })}
 
-          {destinations.length === 0 && (
-            <tr>
-              <td colSpan={6}>
-                Hakua vastaavia matkoja ei löytynyt.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            {destinations.length === 0 && (
+              <tr>
+                <td colSpan={6}>
+                  Hakua vastaavia matkoja ei löytynyt.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </main>
   )
 }
