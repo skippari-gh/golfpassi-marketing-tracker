@@ -138,11 +138,20 @@ export default async function TripPage({
         getTripDestination(item).key ===
           destination.key
     )
-    .sort((a, b) =>
-      a.start_date.localeCompare(
-        b.start_date
+    .sort((a, b) => {
+      const startComparison =
+        a.start_date.localeCompare(
+          b.start_date
+        )
+
+      if (startComparison !== 0) {
+        return startComparison
+      }
+
+      return a.end_date.localeCompare(
+        b.end_date
       )
-    )
+    })
 
   const statusLabel = {
     planned: 'Suunniteltu',
