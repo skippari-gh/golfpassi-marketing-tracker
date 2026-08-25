@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { supabase } from '../../../lib/supabase'
 import { getMarketingPlanItems } from '../../../lib/marketing-plan'
+import { groupTripsByDestination } from '../../../lib/trip-destinations'
 import MarketingPlanItems from '../../components/MarketingPlanItems'
 import {
   getChannels,
@@ -40,86 +41,6 @@ function getToday() {
   ).format(new Date())
 }
 
-function formatTripDate(
-  dateValue: string
-) {
-  const date = new Date(
-    `${dateValue}T12:00:00`
-  )
-
-  if (
-    Number.isNaN(date.getTime())
-  ) {
-    return dateValue
-  }
-
-  return new Intl.DateTimeFormat(
-    'fi-FI',
-    {
-      day: 'numeric',
-      month: 'numeric',
-      year: 'numeric',
-    }
-  ).format(date)
-}
-
-function getTripGroup(
-  trip: {
-    status: string
-    days_to_start: number
-  }
-) {
-  const isActive =
-    trip.status === 'active'
-
-  const isFuture =
-    trip.days_to_start >= 0
-
-  if (isActive && isFuture) {
-    return 0
-  }
-
-  if (isActive && !isFuture) {
-    return 1
-  }
-
-  if (!isActive && isFuture) {
-    return 2
-  }
-
-  return 3
-}
-
-function getTripStatusLabel(
-  trip: {
-    status: string
-    days_to_start: number
-  }
-) {
-  if (
-    trip.status === 'active' &&
-    trip.days_to_start >= 0
-  ) {
-    return 'aktiivinen'
-  }
-
-  if (
-    trip.status === 'active' &&
-    trip.days_to_start < 0
-  ) {
-    return 'päättynyt'
-  }
-
-  if (
-    trip.status !== 'active' &&
-    trip.days_to_start >= 0
-  ) {
-    return 'passiivinen'
-  }
-
-  return 'passiivinen, päättynyt'
-}
-
 async function createMarketingPlan(
   formData: FormData
 ) {
@@ -137,7 +58,7 @@ async function createMarketingPlan(
 
   if (!tripId) {
     throw new Error(
-      'Valitse matka.'
+      'Valitse kohde.'
     )
   }
 
@@ -202,39 +123,32 @@ export default async function NewPlanPage({
       getChannels(),
     ])
 
-  const trips = [
-    ...allTrips.filter(
-      (trip) =>
-        trip.status === 'active' &&
-        trip.days_to_start >= 0
-    ),
-  ].sort((a, b) => {
-    const groupDifference =
-      getTripGroup(a) -
-      getTripGroup(b)
-
-    if (
-      groupDifference !== 0
-    ) {
-      return groupDifference
-    }
-
-    return a.start_date.localeCompare(
-      b.start_date
+  const destinations =
+    groupTripsByDestination(
+      allTrips.filter(
+        (trip) =>
+          trip.status === 'active' &&
+          trip.days_to_start >= 0
+      )
+    ).sort((a, b) =>
+      a.name.localeCompare(
+        b.name,
+        'fi'
+      )
     )
-  })
 
-  const selectedTripExists =
-    trips.some(
-      (trip) =>
-        trip.id ===
-        requestedTripId
+  const requestedDestination =
+    destinations.find(
+      (destination) =>
+        destination.trips.some(
+          (trip) =>
+            trip.id === requestedTripId
+        )
     )
 
   const defaultTripId =
-    selectedTripExists
-      ? requestedTripId
-      : ''
+    requestedDestination
+      ?.trips[0].id || ''
 
   return (
     <>
@@ -390,7 +304,7 @@ export default async function NewPlanPage({
 
             <p className="meta">
               Kaikki suoritukset näkyvät etusivun
-              markkinointikalenterissa saman matkan kortilla.
+              markkinointikalenterissa saman kohteen kortilla.
             </p>
           </div>
 
@@ -402,7 +316,7 @@ export default async function NewPlanPage({
           >
             <div className="plan-field">
               <label htmlFor="trip_id">
-                Matka{' '}
+                Kohde{' '}
                 <span className="required-mark">
                   *
                 </span>
@@ -417,33 +331,27 @@ export default async function NewPlanPage({
                 required
               >
                 <option value="">
-                  Valitse matka
+                  Valitse kohde
                 </option>
 
-                {trips.map((trip) => (
+                {destinations.map((destination) => (
                   <option
-                    key={trip.id}
-                    value={trip.id}
+                    key={destination.key}
+                    value={destination.trips[0].id}
                   >
-                    {trip.name} ·{' '}
-                    {trip.country} ·{' '}
-                    {formatTripDate(
-                      trip.start_date
-                    )}{' '}
-                    ·{' '}
-                    {getTripStatusLabel(
-                      trip
-                    )}
+                    {destination.name} ·{' '}
+                    {destination.country}
                   </option>
                 ))}
               </select>
 
               <p className="trip-count">
                 Valittavana{' '}
-                {trips.length} matkaa.
-                Mukana ovat aktiiviset,
-                passiiviset ja päättyneet
-                matkat.
+                {destinations.length}{' '}
+                {destinations.length === 1
+                  ? 'kohde'
+                  : 'kohdetta'}.
+                Lähtöpäivät eivät näy valinnassa.
               </p>
             </div>
 
