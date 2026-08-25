@@ -34,13 +34,39 @@ export type MarketingRequest = {
   } | null
 }
 
-export type MarketingCalendarItem = {
+export type MarketingCalendarPerformance = {
   id: string
-  kind: 'planned' | 'done'
+  date: string
+  channel: string
+  title: string
+  notes: string | null
+}
+
+type MarketingCalendarItemBase = {
+  id: string
   date: string
   trip_id: string | null
   trip_name: string
   country: string
+}
+
+export type PlannedMarketingCalendarItem =
+  MarketingCalendarItemBase & {
+    kind: 'planned'
+    performances: MarketingCalendarPerformance[]
+  }
+
+export type MarketingCalendarItem =
+  | PlannedMarketingCalendarItem
+  | (MarketingCalendarItemBase & {
+      kind: 'done'
+      channel: string
+      title: string
+      notes: string | null
+    })
+
+type FlatMarketingCalendarItem = MarketingCalendarItemBase & {
+  kind: 'planned' | 'done'
   channel: string
   title: string
   notes: string | null
@@ -266,6 +292,7 @@ export async function getTripsWithPriority() {
   } = await supabase
     .from('marketing_actions')
     .select('*, channels(name)')
+    .is('archived_at', null)
 
   if (actionsError) {
     throw new Error(
@@ -324,6 +351,7 @@ export async function getMarketingActionsForTrip(
         '*, channels(name)'
       )
       .eq('trip_id', tripId)
+      .is('archived_at', null)
       .order('action_date', {
         ascending: false,
       })
@@ -348,6 +376,7 @@ export async function getMarketingRequests() {
         )
       `)
       .neq('status', 'done')
+      .is('archived_at', null)
       .order('created_at', {
         ascending: false,
       })
@@ -369,6 +398,7 @@ export async function getMarketingPlan(
       .from('marketing_plan')
       .select('*')
       .eq('trip_id', tripId)
+      .is('archived_at', null)
       .order('planned_date', {
         ascending: true,
       })
@@ -433,6 +463,7 @@ export async function getMarketingCalendar() {
     supabase
       .from('marketing_plan')
       .select('*')
+      .is('archived_at', null)
       .order('planned_date', {
         ascending: true,
       }),
@@ -442,6 +473,7 @@ export async function getMarketingCalendar() {
       .select(
         '*, channels(name)'
       )
+      .is('archived_at', null)
       .order('action_date', {
         ascending: false,
       }),
@@ -472,8 +504,8 @@ export async function getMarketingCalendar() {
     ])
   )
 
-  const plannedItems:
-    MarketingCalendarItem[] = (
+  const flatPlanItems:
+    FlatMarketingCalendarItem[] = (
     plans || []
   )
     .map((plan: any) => {
@@ -537,7 +569,7 @@ export async function getMarketingCalendar() {
             plan.description,
             plan.content
           ) || null,
-      } satisfies MarketingCalendarItem
+      } satisfies FlatMarketingCalendarItem
     })
     .filter(
       (item) => item.date
@@ -601,8 +633,65 @@ export async function getMarketingCalendar() {
       (item) => item.date
     )
 
+  const completedPlanItems: MarketingCalendarItem[] =
+    flatPlanItems
+      .filter((item) => item.kind === 'done')
+      .map((item) => ({
+        ...item,
+        kind: 'done' as const,
+      }))
+
   return [
-    ...plannedItems,
+    ...groupPlannedItems(flatPlanItems),
+    ...completedPlanItems,
     ...completedItems,
   ]
+}
+function groupPlannedItems(
+  items: FlatMarketingCalendarItem[]
+): PlannedMarketingCalendarItem[] {
+  const groups = new Map<
+    string,
+    PlannedMarketingCalendarItem
+  >()
+
+  for (const item of items) {
+    if (item.kind !== 'planned') {
+      continue
+    }
+
+    const month = item.date.slice(0, 7)
+    const tripKey = item.trip_id || item.trip_name
+    const groupKey = `${tripKey}:${month}`
+    const performance: MarketingCalendarPerformance = {
+      id: item.id,
+      date: item.date,
+      channel: item.channel,
+      title: item.title,
+      notes: item.notes,
+    }
+
+    const existingGroup = groups.get(groupKey)
+
+    if (existingGroup) {
+      existingGroup.performances.push(performance)
+      existingGroup.performances.sort((a, b) =>
+        a.date.localeCompare(b.date)
+      )
+      existingGroup.date = existingGroup.performances[0].date
+      continue
+    }
+
+    groups.set(groupKey, {
+      id: `plan-group-${groupKey}`,
+      kind: 'planned',
+      date: item.date,
+      trip_id: item.trip_id,
+      trip_name: item.trip_name,
+      country: item.country,
+      performances: [performance],
+    })
+  }
+
+  return Array.from(groups.values())
 }

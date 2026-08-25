@@ -27,6 +27,7 @@ async function markPlanDone(formData: FormData) {
       completed_at: new Date().toISOString(),
     })
     .eq('id', planId)
+    .is('archived_at', null)
 
   if (error) {
     throw new Error(error.message)
@@ -129,7 +130,7 @@ export default async function TripPage({
           href={`/trips/${trip.id}/plan/new`}
           style={{ flexShrink: 0 }}
         >
-          Lisää suunniteltu julkaisu
+          Lisää suoritteita
         </Link>
       </div>
 

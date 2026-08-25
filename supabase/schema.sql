@@ -38,6 +38,7 @@ create table if not exists marketing_actions (
   link text,
   note text,
   asset_used text,
+  archived_at timestamptz,
   created_at timestamptz default now()
 );
 
@@ -92,6 +93,8 @@ select
       case when coalesce(current_date - max(ma.action_date), 9999) <= 7 then -50 else 0 end
   end as priority_score
 from trips t
-left join marketing_actions ma on ma.trip_id = t.id
+left join marketing_actions ma
+  on ma.trip_id = t.id
+  and ma.archived_at is null
 left join channels c on c.id = ma.channel_id
 group by t.id;

@@ -61,9 +61,17 @@ export default async function RequestPage({
     <main className="container">
       <nav className="nav">
         <Link href="/">← Takaisin</Link>
+        <Link href="/archive">Arkisto</Link>
       </nav>
 
       <article className="card">
+        {request.archived_at && (
+          <p className="meta">
+            Tämä toive on arkistoitu. Keskustelu ja liitteet ovat
+            edelleen tallessa.
+          </p>
+        )}
+
         <span className="score">
           {priorityLabel[
             request.priority as keyof typeof priorityLabel
