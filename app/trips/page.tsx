@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getTripsWithPriority } from '../../lib/trips'
+import { groupTripsByDestination } from '../../lib/trip-destinations'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,10 +15,6 @@ type ParsedDate = {
   month: number
   year: number
 }
-
-type TripItem = Awaited<
-  ReturnType<typeof getTripsWithPriority>
->[number]
 
 function parseDate(
   value?: string | null
@@ -97,86 +94,6 @@ function normalizeText(value: string) {
     .trim()
 }
 
-function getTripDuplicateKey(
-  trip: TripItem
-) {
-  return [
-    normalizeText(trip.name),
-    normalizeText(trip.country),
-    trip.start_date.slice(0, 10),
-    trip.end_date.slice(0, 10),
-  ].join('|')
-}
-
-function getTripDataScore(
-  trip: TripItem
-) {
-  let score = 0
-
-  if (trip.last_marketed_at) {
-    score += 100
-  }
-
-  score += trip.channels_used.length * 10
-
-  if (trip.has_newsletter) {
-    score += 5
-  }
-
-  if (trip.has_social) {
-    score += 5
-  }
-
-  if (trip.url) {
-    score += 1
-  }
-
-  return score
-}
-
-function removeDuplicateTrips(
-  trips: TripItem[]
-) {
-  const uniqueTrips = new Map<
-    string,
-    TripItem
-  >()
-
-  for (const trip of trips) {
-    const duplicateKey =
-      getTripDuplicateKey(trip)
-
-    const existingTrip =
-      uniqueTrips.get(duplicateKey)
-
-    if (!existingTrip) {
-      uniqueTrips.set(
-        duplicateKey,
-        trip
-      )
-
-      continue
-    }
-
-    const existingScore =
-      getTripDataScore(existingTrip)
-
-    const newScore =
-      getTripDataScore(trip)
-
-    if (newScore > existingScore) {
-      uniqueTrips.set(
-        duplicateKey,
-        trip
-      )
-    }
-  }
-
-  return Array.from(
-    uniqueTrips.values()
-  )
-}
-
 export default async function TripsPage({
   searchParams,
 }: TripsPageProps) {
@@ -189,24 +106,28 @@ export default async function TripsPage({
   const allTrips =
     await getTripsWithPriority()
 
-  const uniqueTrips =
-    removeDuplicateTrips(
-      allTrips.filter(
-        (trip) =>
-          trip.status === 'active' &&
-          trip.days_to_start >= 0
-      )
-    )
+  const activeTrips = allTrips.filter(
+    (trip) =>
+      trip.status === 'active' &&
+      trip.days_to_start >= 0
+  )
 
-  const trips = uniqueTrips
-    .filter((trip) => {
+  const destinations =
+    groupTripsByDestination(activeTrips)
+    .filter((destination) => {
       if (!search) {
         return true
       }
 
       const searchableText =
         normalizeText(
-          `${trip.name} ${trip.country}`
+          [
+            destination.name,
+            destination.country,
+            ...destination.trips.map(
+              (trip) => trip.name
+            ),
+          ].join(' ')
         )
 
       return searchableText.includes(
@@ -215,8 +136,8 @@ export default async function TripsPage({
     })
     .sort((a, b) => {
       const dateComparison =
-        a.start_date.localeCompare(
-          b.start_date
+        a.trips[0].start_date.localeCompare(
+          b.trips[0].start_date
         )
 
       if (dateComparison !== 0) {
@@ -228,6 +149,12 @@ export default async function TripsPage({
         'fi'
       )
     })
+
+  const departureCount = destinations.reduce(
+    (count, destination) =>
+      count + destination.trips.length,
+    0
+  )
 
   return (
     <main className="container">
@@ -273,68 +200,97 @@ export default async function TripsPage({
       </form>
 
       <p className="search-result-count">
-        Näytetään {trips.length} matkaa
+        Näytetään {destinations.length}{' '}
+        {destinations.length === 1
+          ? 'kohde'
+          : 'kohdetta'}{' '}
+        · {departureCount}{' '}
+        {departureCount === 1
+          ? 'lähtö'
+          : 'lähtöä'}
       </p>
 
       <table>
         <thead>
           <tr>
-            <th>Matka</th>
+            <th>Kohde</th>
             <th>Maa</th>
-            <th>Päivämäärät</th>
-            <th>Status</th>
+            <th>Lähdöt</th>
+            <th>Seuraava lähtö</th>
             <th>Viimeksi</th>
             <th>Prioriteetti</th>
           </tr>
         </thead>
 
         <tbody>
-          {trips.map((trip) => (
-            <tr key={trip.id}>
-              <td>
-                <Link
-                  href={`/trips/${trip.id}`}
+          {destinations.map((destination) => {
+            const nextTrip = destination.trips[0]
+
+            const lastMarketedAt =
+              destination.trips
+                .map((trip) => trip.last_marketed_at)
+                .filter(
+                  (date): date is string => Boolean(date)
+                )
+                .sort()
+                .at(-1) || null
+
+            const priorityScore = Math.max(
+              ...destination.trips.map(
+                (trip) => trip.priority_score
+              )
+            )
+
+            return (
+              <tr key={destination.key}>
+                <td>
+                  <Link
+                    href={`/trips/${nextTrip.id}`}
+                  >
+                    {destination.name}
+                  </Link>
+                </td>
+
+                <td>
+                  {destination.country}
+                </td>
+
+                <td>
+                  {destination.trips.length}{' '}
+                  {destination.trips.length === 1
+                    ? 'lähtö'
+                    : 'lähtöä'}
+                </td>
+
+                <td
+                  style={{
+                    whiteSpace: 'nowrap',
+                  }}
                 >
-                  {trip.name}
-                </Link>
-              </td>
+                  {formatDateRange(
+                    nextTrip.start_date,
+                    nextTrip.end_date
+                  )}
+                </td>
 
-              <td>
-                {trip.country}
-              </td>
+                <td
+                  style={{
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {formatDate(
+                    lastMarketedAt
+                  )}
+                </td>
 
-              <td
-                style={{
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {formatDateRange(
-                  trip.start_date,
-                  trip.end_date
-                )}
-              </td>
+                <td>
+                  {priorityScore}
+                </td>
+              </tr>
+            )
+          })}
 
-              <td>
-                {trip.status}
-              </td>
-
-              <td
-                style={{
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {formatDate(
-                  trip.last_marketed_at
-                )}
-              </td>
-
-              <td>
-                {trip.priority_score}
-              </td>
-            </tr>
-          ))}
-
-          {trips.length === 0 && (
+          {destinations.length === 0 && (
             <tr>
               <td colSpan={6}>
                 Hakua vastaavia matkoja ei löytynyt.

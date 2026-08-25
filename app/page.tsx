@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { priorityReason } from '../lib/priority'
 import { supabase } from '../lib/supabase'
 import { archiveEntity } from '../lib/archive'
+import { groupTripsByDestination } from '../lib/trip-destinations'
 import ConfirmActionButton from './components/ConfirmActionButton'
 import {
   getMarketingCalendar,
@@ -426,12 +427,37 @@ export default async function Home({
   const activeTrips = allTrips
     .filter((trip) => trip.status === 'active')
     .filter((trip) => trip.days_to_start >= 0)
-    .sort(
-      (a, b) =>
-        b.priority_score - a.priority_score
-    )
 
-  const priorityTrips = activeTrips.slice(0, 10)
+  const priorityDestinations =
+    groupTripsByDestination(activeTrips)
+      .map((destination) => {
+        const priorityTrip = [
+          ...destination.trips,
+        ].sort((a, b) => {
+          const scoreComparison =
+            b.priority_score - a.priority_score
+
+          if (scoreComparison !== 0) {
+            return scoreComparison
+          }
+
+          return a.start_date.localeCompare(
+            b.start_date
+          )
+        })[0]
+
+        return {
+          ...destination,
+          nextTrip: destination.trips[0],
+          priorityTrip,
+        }
+      })
+      .sort(
+        (a, b) =>
+          b.priorityTrip.priority_score -
+          a.priorityTrip.priority_score
+      )
+      .slice(0, 10)
 
   const monthCalendarItems =
     calendarItems.filter((item) =>
@@ -1818,9 +1844,11 @@ export default async function Home({
 
                     <p className="priority-info-intro">
                       Lista näyttää 10 aktiivista tulevaa
-                      matkaa, joilla on korkein pistemäärä.
+                      kohdetta. Kohteen sijoitus määräytyy
+                      sen eniten markkinointia tarvitsevan
+                      lähdön pistemäärän perusteella.
                       Mitä suurempi pistemäärä on, sitä
-                      enemmän matka tarvitsee markkinointia.
+                      enemmän lähtö tarvitsee markkinointia.
                     </p>
 
                     <ul className="priority-info-list">
@@ -1927,77 +1955,99 @@ export default async function Home({
                 </details>
               </div>
 
-              {priorityTrips.length === 0 ? (
+              {priorityDestinations.length === 0 ? (
                 <p className="empty-message">
                   Aktiivisia tulevia matkoja
                   ei löytynyt.
                 </p>
               ) : (
                 <div className="compact-list">
-                  {priorityTrips.map(
-                    (trip, index) => (
-                      <article
-                        className="compact-card"
-                        key={trip.id}
-                      >
-                        <span className="score">
-                          #{index + 1} ·{' '}
-                          {trip.priority_score}{' '}
-                          pistettä
-                        </span>
+                  {priorityDestinations.map(
+                    (destination, index) => {
+                      const {
+                        nextTrip,
+                        priorityTrip,
+                      } = destination
 
-                        <h3>
-                          {trip.name}
-                        </h3>
+                      return (
+                        <article
+                          className="compact-card"
+                          key={destination.key}
+                        >
+                          <span className="score">
+                            #{index + 1} ·{' '}
+                            {priorityTrip.priority_score}{' '}
+                            pistettä
+                          </span>
 
-                        <p className="meta">
-                          {trip.country}
-                        </p>
+                          <h3>
+                            {destination.name}
+                          </h3>
 
-                        <p className="meta">
-                          Lähtöön:{' '}
-                          <strong>
-                            {trip.days_to_start}{' '}
-                            päivää
-                          </strong>
-                        </p>
+                          <p className="meta">
+                            {destination.country} ·{' '}
+                            {destination.trips.length}{' '}
+                            {destination.trips.length === 1
+                              ? 'lähtö'
+                              : 'lähtöä'}
+                          </p>
 
-                        <p className="meta">
-                          Viimeksi markkinoitu:{' '}
-                          <strong>
-                            {trip.last_marketed_at ||
-                              'ei koskaan'}
-                          </strong>
-                        </p>
+                          <p className="meta">
+                            Seuraava lähtö:{' '}
+                            <strong>
+                              {nextTrip.days_to_start}{' '}
+                              päivää
+                            </strong>
+                          </p>
 
-                        <p className="priority-summary">
-                          {compactPriorityReason(trip)}
-                        </p>
+                          <p className="meta">
+                            Markkinoitava lähtö:{' '}
+                            <strong>
+                              {formatDate(
+                                priorityTrip.start_date
+                              )}
+                            </strong>
+                          </p>
 
-                        <div className="actions">
-                          <Link
-                            className="button"
-                            href={`/trips/${trip.id}`}
-                          >
-                            Avaa
-                          </Link>
+                          <p className="meta">
+                            Viimeksi markkinoitu:{' '}
+                            <strong>
+                              {priorityTrip.last_marketed_at ||
+                                'ei koskaan'}
+                            </strong>
+                          </p>
 
-                          <Link
-                            className="button secondary"
-                            href={`/plan/new?trip=${trip.id}`}
-                          >
-                            Suunnittele
-                          </Link>
+                          <p className="priority-summary">
+                            {compactPriorityReason(
+                              priorityTrip
+                            )}
+                          </p>
 
-                          <Link
-                            className="button secondary"
-                            href={`/actions/new?trip=${trip.id}`}
-                          >
-                            Merkitse tehdyksi
-                          </Link>
-                        </div>
-                      </article>
-                    )
+                          <div className="actions">
+                            <Link
+                              className="button"
+                              href={`/trips/${priorityTrip.id}`}
+                            >
+                              Avaa lähdöt
+                            </Link>
+
+                            <Link
+                              className="button secondary"
+                              href={`/plan/new?trip=${priorityTrip.id}`}
+                            >
+                              Suunnittele
+                            </Link>
+
+                            <Link
+                              className="button secondary"
+                              href={`/actions/new?trip=${priorityTrip.id}`}
+                            >
+                              Merkitse tehdyksi
+                            </Link>
+                          </div>
+                        </article>
+                      )
+                    }
                   )}
                 </div>
               )}

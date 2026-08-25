@@ -3,12 +3,74 @@ import { revalidatePath } from 'next/cache'
 import { priorityReason } from '../../../lib/priority'
 import { supabase } from '../../../lib/supabase'
 import {
-  getTripWithPriority,
+  getTripsWithPriority,
   getMarketingActionsForTrip,
   getMarketingPlan,
 } from '../../../lib/trips'
+import { getTripDestination } from '../../../lib/trip-destinations'
 
 export const dynamic = 'force-dynamic'
+
+type ParsedDate = {
+  day: number
+  month: number
+  year: number
+}
+
+function parseDate(
+  value?: string | null
+): ParsedDate | null {
+  if (!value) {
+    return null
+  }
+
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})/
+  )
+
+  if (!match) {
+    return null
+  }
+
+  return {
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+  }
+}
+
+function formatDateRange(
+  startValue: string,
+  endValue: string
+) {
+  const start = parseDate(startValue)
+  const end = parseDate(endValue)
+
+  if (!start || !end) {
+    return `${startValue}–${endValue}`
+  }
+
+  if (
+    start.year === end.year &&
+    start.month === end.month &&
+    start.day === end.day
+  ) {
+    return `${start.day}.${start.month}.${start.year}`
+  }
+
+  if (
+    start.year === end.year &&
+    start.month === end.month
+  ) {
+    return `${start.day}.–${end.day}.${end.month}.${end.year}`
+  }
+
+  if (start.year === end.year) {
+    return `${start.day}.${start.month}.–${end.day}.${end.month}.${end.year}`
+  }
+
+  return `${start.day}.${start.month}.${start.year}–${end.day}.${end.month}.${end.year}`
+}
 
 async function markPlanDone(formData: FormData) {
   'use server'
@@ -43,11 +105,15 @@ export default async function TripPage({
 }) {
   const { id } = await params
 
-  const [trip, actions, marketingPlan] = await Promise.all([
-    getTripWithPriority(id),
+  const [allTrips, actions, marketingPlan] = await Promise.all([
+    getTripsWithPriority(),
     getMarketingActionsForTrip(id),
     getMarketingPlan(id),
   ])
+
+  const trip = allTrips.find(
+    (item) => item.id === id
+  )
 
   if (!trip) {
     return (
@@ -60,6 +126,23 @@ export default async function TripPage({
       </main>
     )
   }
+
+  const destination =
+    getTripDestination(trip)
+
+  const departureTrips = allTrips
+    .filter(
+      (item) =>
+        item.status === 'active' &&
+        item.days_to_start >= 0 &&
+        getTripDestination(item).key ===
+          destination.key
+    )
+    .sort((a, b) =>
+      a.start_date.localeCompare(
+        b.start_date
+      )
+    )
 
   const statusLabel = {
     planned: 'Suunniteltu',
@@ -83,10 +166,26 @@ export default async function TripPage({
           Prioriteetti {trip.priority_score}
         </span>
 
-        <h1>{trip.name}</h1>
+        <h1>{destination.name}</h1>
 
         <p>
-          {trip.country} · {trip.start_date}–{trip.end_date}
+          {trip.country} ·{' '}
+          {departureTrips.length}{' '}
+          {departureTrips.length === 1
+            ? 'tuleva lähtö'
+            : 'tulevaa lähtöä'}
+        </p>
+
+        <h2 className="selected-departure-title">
+          {trip.name}
+        </h2>
+
+        <p>
+          <strong>Valittu lähtö:</strong>{' '}
+          {formatDateRange(
+            trip.start_date,
+            trip.end_date
+          )}
         </p>
 
         <p>
@@ -103,6 +202,67 @@ export default async function TripPage({
           <strong>Suositus:</strong> {priorityReason(trip)}
         </p>
       </article>
+
+      <section className="departure-section">
+        <div className="departure-heading">
+          <div>
+            <h2>Lähtöpäivät</h2>
+
+            <p className="meta">
+              Valitse lähtö nähdäksesi sen suunnitelman ja
+              markkinointihistorian.
+            </p>
+          </div>
+
+          <span className="departure-count">
+            {departureTrips.length}{' '}
+            {departureTrips.length === 1
+              ? 'lähtö'
+              : 'lähtöä'}
+          </span>
+        </div>
+
+        <div className="departure-list">
+          {departureTrips.map((departure) => {
+            const isSelected = departure.id === trip.id
+
+            return (
+              <article
+                className={`departure-row${
+                  isSelected ? ' selected' : ''
+                }`}
+                key={departure.id}
+              >
+                <div>
+                  <strong>
+                    {formatDateRange(
+                      departure.start_date,
+                      departure.end_date
+                    )}
+                  </strong>
+
+                  <p className="meta">
+                    {departure.name}
+                  </p>
+                </div>
+
+                {isSelected ? (
+                  <span className="departure-selected">
+                    Valittu lähtö
+                  </span>
+                ) : (
+                  <Link
+                    className="button secondary"
+                    href={`/trips/${departure.id}`}
+                  >
+                    Avaa lähtö
+                  </Link>
+                )}
+              </article>
+            )
+          })}
+        </div>
+      </section>
 
       <div
         style={{
