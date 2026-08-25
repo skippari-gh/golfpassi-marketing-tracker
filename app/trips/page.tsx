@@ -284,6 +284,22 @@ export default async function TripsPage({
                     </summary>
 
                     <div className="trip-departure-rows">
+                      <div className="trip-destination-actions">
+                        <div>
+                          <strong>Kohteen markkinointi</strong>
+                          <p className="meta">
+                            Kaikki lähtöpäivät, suunnitelmat ja tehdyt toimet yhdessä näkymässä.
+                          </p>
+                        </div>
+
+                        <Link
+                          className="button"
+                          href={`/destinations/${destination.key}`}
+                        >
+                          Avaa markkinointinäkymä
+                        </Link>
+                      </div>
+
                       {destination.trips.map((departure) => (
                         <div
                           className="trip-departure-list-row"
