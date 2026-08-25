@@ -14,7 +14,7 @@ export default async function RequestPage({
 
   const { data: request, error: requestError } = await supabase
     .from('marketing_requests')
-    .select('*, trips(name,country)')
+    .select('*, destinations(name,country), trips(name,country)')
     .eq('id', id)
     .single()
 
@@ -25,7 +25,7 @@ export default async function RequestPage({
           <Link href="/">← Takaisin</Link>
         </nav>
 
-        <h1>Toivetta ei löytynyt.</h1>
+        <h1>Markkinointipyyntöä ei löytynyt.</h1>
       </main>
     )
   }
@@ -67,7 +67,7 @@ export default async function RequestPage({
       <article className="card">
         {request.archived_at && (
           <p className="meta">
-            Tämä toive on arkistoitu. Keskustelu ja liitteet ovat
+            Tämä pyyntö on arkistoitu. Keskustelu ja liitteet ovat
             edelleen tallessa.
           </p>
         )}
@@ -79,11 +79,11 @@ export default async function RequestPage({
         </span>
 
         <h1>
-          {request.trips?.name || 'Yleinen markkinointitoive'}
+          {request.destinations?.name || request.trips?.name || 'Yleinen markkinointipyyntö'}
         </h1>
 
-        {request.trips?.country && (
-          <p className="meta">{request.trips.country}</p>
+        {(request.destinations?.country || request.trips?.country) && (
+          <p className="meta">{request.destinations?.country || request.trips?.country}</p>
         )}
 
         <p>{request.request_text}</p>
