@@ -366,6 +366,75 @@ label { font-weight:700; }
   margin-bottom: 8px;
 }
 
+.destination-summary {
+  margin-top: 28px;
+}
+
+.destination-summary-heading {
+  margin-bottom: 14px;
+}
+
+.destination-summary-heading h2,
+.destination-summary-heading .meta {
+  margin: 0;
+}
+
+.destination-summary-heading .meta {
+  margin-top: 5px;
+}
+
+.destination-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.destination-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-height: 132px;
+  padding: 17px;
+  border: 1px solid #dbe4ee;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 6px 18px rgba(0, 60, 112, .04);
+}
+
+.destination-summary-card-wide {
+  grid-column: span 1;
+}
+
+.destination-summary-card strong {
+  color: var(--navy);
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.destination-summary-card > span:last-child {
+  color: #607080;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.destination-summary-label {
+  color: #607080;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.destination-summary-countdown {
+  border-color: rgba(255, 130, 0, .45);
+  background: #fff9f2;
+}
+
+.destination-summary-countdown strong {
+  color: #a34f00;
+  font-size: 24px;
+}
+
 .destination-section-heading {
   display: flex;
   align-items: flex-end;
@@ -495,6 +564,10 @@ label { font-weight:700; }
 }
 
 @media (max-width: 640px) {
+  .destination-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
   .destination-section-heading,
   .trip-destination-actions,
   .departure-heading,
