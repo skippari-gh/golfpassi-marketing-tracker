@@ -92,6 +92,24 @@ th { background:#f0f6fb; }
   background: #f7fbfe;
 }
 
+.trip-destination-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 18px 14px 40px;
+  border-bottom: 1px solid #dbe7f0;
+  background: #eef7fc;
+}
+
+.trip-destination-actions .meta {
+  margin: 4px 0 0;
+}
+
+.trip-destination-actions .button {
+  flex-shrink: 0;
+}
+
 .trip-departure-list-row {
   padding-left: 40px;
   border-bottom: 1px solid #e6edf5;
@@ -344,6 +362,27 @@ label { font-weight:700; }
   font-size: 20px;
 }
 
+.destination-marketing-hero h1 {
+  margin-bottom: 8px;
+}
+
+.destination-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 32px 0 16px;
+}
+
+.destination-section-heading h2,
+.destination-section-heading .meta {
+  margin: 0;
+}
+
+.destination-section-heading .meta {
+  margin-top: 6px;
+}
+
 .departure-section {
   margin-top: 32px;
 }
@@ -413,10 +452,16 @@ label { font-weight:700; }
 }
 
 @media (max-width: 640px) {
+  .destination-section-heading,
+  .trip-destination-actions,
   .departure-heading,
   .departure-row {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .trip-destination-actions .button {
+    align-self: flex-start;
   }
 
   .departure-count,

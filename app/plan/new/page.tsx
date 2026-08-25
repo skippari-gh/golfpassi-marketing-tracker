@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic'
 type PlanPageSearchParams =
   Promise<{
     trip?: string | string[]
+    destination?: string | string[]
   }>
 
 function getSingleParam(
@@ -139,6 +140,11 @@ export default async function NewPlanPage({
       resolvedSearchParams.trip
     )
 
+  const requestedDestinationId =
+    getSingleParam(
+      resolvedSearchParams.destination
+    )
+
   const [allTrips, channels] =
     await Promise.all([
       getTripsWithPriority(),
@@ -162,6 +168,7 @@ export default async function NewPlanPage({
   const requestedDestination =
     destinations.find(
       (destination) =>
+        destination.key === requestedDestinationId ||
         destination.trips.some(
           (trip) =>
             trip.id === requestedTripId
