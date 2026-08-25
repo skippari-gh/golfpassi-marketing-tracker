@@ -25,6 +25,7 @@ export type TripWithPriority = {
 export type MarketingRequest = {
   id: string
   trip_id: string | null
+  destination_id: string | null
   requester_name: string
   request_text: string
   priority: 'low' | 'normal' | 'high'
@@ -32,6 +33,11 @@ export type MarketingRequest = {
   status: 'open' | 'in_progress' | 'done'
   created_at: string
   trips?: {
+    id: string
+    name: string
+    country: string
+  } | null
+  destinations?: {
     id: string
     name: string
     country: string
@@ -459,6 +465,11 @@ export async function getMarketingRequests() {
       .from('marketing_requests')
       .select(`
         *,
+        destinations (
+          id,
+          name,
+          country
+        ),
         trips (
           id,
           name,

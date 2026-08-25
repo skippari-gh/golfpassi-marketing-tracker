@@ -1574,7 +1574,7 @@ export default async function Home({
               </Link>
 
               <Link href="/requests/new">
-                Lisää toive
+                Pyydä markkinointia
               </Link>
 
               <Link
@@ -2072,11 +2072,11 @@ export default async function Home({
                   </span>
 
                   <h2>
-                    Markkinointitoiveet
+                    Markkinointipyynnöt
                   </h2>
 
                   <p>
-                    Avoimet toiveet ja keskustelut.
+                    Myynnin ja matkatuotannon pyynnöt markkinoinnille.
                   </p>
                 </div>
 
@@ -2084,13 +2084,13 @@ export default async function Home({
                   className="button"
                   href="/requests/new"
                 >
-                  Lisää
+                  Pyydä markkinointia
                 </Link>
               </div>
 
               {marketingRequests.length === 0 ? (
                 <p className="empty-message">
-                  Avoimia markkinointitoiveita
+                  Avoimia markkinointipyyntöjä
                   ei ole.
                 </p>
               ) : (
@@ -2105,13 +2105,14 @@ export default async function Home({
                       </span>
 
                       <h3>
-                        {request.trips?.name ||
-                          'Yleinen markkinointitoive'}
+                        {request.destinations?.name ||
+                          request.trips?.name ||
+                          'Yleinen markkinointipyyntö'}
                       </h3>
 
-                      {request.trips?.country && (
+                      {(request.destinations?.country || request.trips?.country) && (
                         <p className="meta">
-                          {request.trips.country}
+                          {request.destinations?.country || request.trips?.country}
                         </p>
                       )}
 
