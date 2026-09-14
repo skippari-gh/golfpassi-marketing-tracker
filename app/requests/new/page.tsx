@@ -35,10 +35,13 @@ export default async function NewRequestPage() {
         >
           <label>
             Kohde
-            <select name="destination_id" defaultValue="" required>
+            <select name="trip_id" defaultValue="" required>
               <option value="" disabled>Valitse kohde</option>
               {destinations.map((destination) => (
-                <option key={destination.key} value={destination.key}>
+                <option
+                  key={destination.key}
+                  value={destination.trips[0]?.id || ''}
+                >
                   {destination.name} · {destination.country}
                 </option>
               ))}
