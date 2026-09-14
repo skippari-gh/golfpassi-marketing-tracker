@@ -1,17 +1,9 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { supabase } from '../../../lib/supabase'
+import { getTripDestination } from '../../../lib/trip-destinations'
 
 const MARKETING_NOTIFICATION_EMAIL = 'jani.kinnunen@golfpassi.fi'
-
-function getToday() {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Helsinki',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date())
-}
 
 async function sendMarketingRequestNotification({
   destinationName,
@@ -85,49 +77,34 @@ async function sendMarketingRequestNotification({
 export async function POST(request: Request) {
   const formData = await request.formData()
 
-  const destinationId = String(formData.get('destination_id') || '')
+  const tripId = String(formData.get('trip_id') || '')
   const requesterName = String(formData.get('requester_name') || '').trim()
   const requestText = String(formData.get('request_text') || '').trim()
   const priority: 'high' | 'normal' =
     formData.get('urgent') === 'on' ? 'high' : 'normal'
 
-  if (!destinationId || !requesterName || !requestText) {
+  if (!tripId || !requesterName || !requestText) {
     return new NextResponse(
       'Valitse kohde ja täytä nimi sekä markkinointipyyntö.',
       { status: 400 }
     )
   }
 
-  const { data: destination, error: destinationError } = await supabase
-    .from('destinations')
-    .select('name, country')
-    .eq('id', destinationId)
-    .single()
-
-  if (destinationError || !destination) {
-    return new NextResponse('Valittua kohdetta ei löytynyt.', { status: 400 })
-  }
-
   const { data: representativeTrip, error: tripError } = await supabase
     .from('trips')
-    .select('id')
-    .eq('destination_id', destinationId)
-    .eq('status', 'active')
-    .gte('end_date', getToday())
-    .order('start_date', { ascending: true })
-    .limit(1)
+    .select('id, destination_id, name, country')
+    .eq('id', tripId)
     .single()
 
   if (tripError || !representativeTrip) {
-    return new NextResponse('Kohteelle ei löytynyt tulevaa lähtöä.', {
-      status: 400,
-    })
+    console.error('Markkinointipyynnön matkaa ei löytynyt:', tripError)
+    return new NextResponse('Valittua kohdetta ei löytynyt.', { status: 400 })
   }
 
   const { error } = await supabase
     .from('marketing_requests')
     .insert({
-      destination_id: destinationId,
+      destination_id: representativeTrip.destination_id || null,
       trip_id: representativeTrip.id,
       requester_name: requesterName,
       request_text: requestText,
@@ -143,9 +120,11 @@ export async function POST(request: Request) {
     })
   }
 
+  const destination = getTripDestination(representativeTrip)
+
   await sendMarketingRequestNotification({
     destinationName: destination.name,
-    destinationCountry: destination.country,
+    destinationCountry: representativeTrip.country,
     requesterName,
     requestText,
     priority,
