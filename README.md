@@ -28,6 +28,22 @@ NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
+## Markkinointipyyntöjen sähköposti-ilmoitukset
+
+Kun uusi markkinointipyyntö tallennetaan, sovellus lähettää ilmoituksen osoitteeseen
+`jani.kinnunen@golfpassi.fi`.
+
+Sähköpostin lähetys käyttää Resend APIa. Lisää tuotantoympäristöön:
+
+```env
+RESEND_API_KEY=...
+MARKETING_NOTIFICATION_FROM="Golfpassi Marketing Tracker <markkinointi@golfpassi.fi>"
+```
+
+`MARKETING_NOTIFICATION_FROM`-osoitteen domainin pitää olla vahvistettu Resendissä.
+Jos sähköpostipalvelu ei ole konfiguroitu tai lähetys epäonnistuu, markkinointipyyntö
+säilyy silti Supabasessa ja virhe kirjataan palvelinlokiin.
+
 ## Matkojen automaattinen synkronointi
 
 Vercel ajaa `/api/cron/sync-trips`-reitin päivittäin klo 05.00 UTC
