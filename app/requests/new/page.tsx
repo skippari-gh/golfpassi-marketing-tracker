@@ -7,6 +7,8 @@ import { supabase } from '../../../lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
+const MARKETING_NOTIFICATION_EMAIL = 'jani.kinnunen@golfpassi.fi'
+
 function getToday() {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Helsinki',
@@ -14,6 +16,75 @@ function getToday() {
     month: '2-digit',
     day: '2-digit',
   }).format(new Date())
+}
+
+async function sendMarketingRequestNotification({
+  destinationName,
+  destinationCountry,
+  requesterName,
+  requestText,
+  priority,
+}: {
+  destinationName: string
+  destinationCountry: string
+  requesterName: string
+  requestText: string
+  priority: 'high' | 'normal'
+}) {
+  const apiKey = process.env.RESEND_API_KEY
+  const from = process.env.MARKETING_NOTIFICATION_FROM
+
+  if (!apiKey || !from) {
+    console.error(
+      'Markkinointipyynnön sähköposti-ilmoitusta ei lähetetty: RESEND_API_KEY tai MARKETING_NOTIFICATION_FROM puuttuu.'
+    )
+    return
+  }
+
+  const isUrgent = priority === 'high'
+  const subject = `${isUrgent ? 'KIIREELLINEN: ' : ''}Uusi markkinointipyyntö – ${destinationName}`
+  const text = [
+    'Golfpassin Marketing Trackeriin on tullut uusi markkinointipyyntö.',
+    '',
+    `Kohde: ${destinationName} · ${destinationCountry}`,
+    `Pyytäjä: ${requesterName}`,
+    `Kiireellisyys: ${isUrgent ? 'Kiireellinen' : 'Normaali'}`,
+    '',
+    'Pyyntö:',
+    requestText,
+    '',
+    'Pyyntö näkyy myös Marketing Trackerin etusivulla.',
+  ].join('\n')
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: [MARKETING_NOTIFICATION_EMAIL],
+        subject,
+        text,
+      }),
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      console.error(
+        'Markkinointipyynnön sähköposti-ilmoituksen lähetys epäonnistui:',
+        response.status,
+        await response.text()
+      )
+    }
+  } catch (error) {
+    console.error(
+      'Markkinointipyynnön sähköposti-ilmoituksen lähetys epäonnistui:',
+      error
+    )
+  }
 }
 
 async function createMarketingRequest(formData: FormData) {
@@ -26,6 +97,16 @@ async function createMarketingRequest(formData: FormData) {
 
   if (!destinationId || !requesterName || !requestText) {
     throw new Error('Valitse kohde ja täytä nimi sekä markkinointipyyntö.')
+  }
+
+  const { data: destination, error: destinationError } = await supabase
+    .from('destinations')
+    .select('name, country')
+    .eq('id', destinationId)
+    .single()
+
+  if (destinationError || !destination) {
+    throw new Error('Valittua kohdetta ei löytynyt.')
   }
 
   const { data: representativeTrip, error: tripError } = await supabase
@@ -55,6 +136,14 @@ async function createMarketingRequest(formData: FormData) {
     })
 
   if (error) throw new Error(error.message)
+
+  await sendMarketingRequestNotification({
+    destinationName: destination.name,
+    destinationCountry: destination.country,
+    requesterName,
+    requestText,
+    priority,
+  })
 
   revalidatePath('/')
   redirect('/')
