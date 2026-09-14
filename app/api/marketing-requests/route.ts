@@ -3,7 +3,8 @@ import { revalidatePath } from 'next/cache'
 import { supabase } from '../../../lib/supabase'
 import { getTripDestination } from '../../../lib/trip-destinations'
 
-const MARKETING_NOTIFICATION_EMAIL = 'jani.kinnunen@golfpassi.fi'
+// Temporary delivery via the Resend account owner's Gmail until domain verification.
+const MARKETING_NOTIFICATION_EMAIL = 'skippari@gmail.com'
 
 async function sendMarketingRequestNotification({
   destinationName,
@@ -19,11 +20,11 @@ async function sendMarketingRequestNotification({
   priority: 'high' | 'normal'
 }) {
   const apiKey = process.env.RESEND_API_KEY
-  const from = process.env.MARKETING_NOTIFICATION_FROM
+  const from = 'Golfpassi Marketing Tracker <onboarding@resend.dev>'
 
-  if (!apiKey || !from) {
+  if (!apiKey) {
     console.error(
-      'Markkinointipyynnön sähköposti-ilmoitusta ei lähetetty: RESEND_API_KEY tai MARKETING_NOTIFICATION_FROM puuttuu.'
+      'Markkinointipyynnön sähköposti-ilmoitusta ei lähetetty: RESEND_API_KEY puuttuu.'
     )
     return
   }
