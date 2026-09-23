@@ -16,6 +16,7 @@ type PlanPageSearchParams =
   Promise<{
     trip?: string | string[]
     destination?: string | string[]
+    date?: string | string[]
   }>
 
 function getSingleParam(
@@ -47,9 +48,10 @@ async function createMarketingPlan(
 ) {
   'use server'
 
-  const destinationId = String(
-    formData.get('destination_id') || ''
-  )
+  const destinationIds = formData
+    .getAll('destination_id')
+    .map((value) => String(value))
+    .filter(Boolean)
 
   const createdBy = String(
     formData.get(
@@ -57,9 +59,9 @@ async function createMarketingPlan(
     ) || ''
   ).trim()
 
-  if (!destinationId) {
+  if (destinationIds.length === 0) {
     throw new Error(
-      'Valitse kohde.'
+      'Valitse vähintään yksi kohde.'
     )
   }
 
@@ -71,49 +73,58 @@ async function createMarketingPlan(
 
   const planItems = getMarketingPlanItems(formData)
 
-  const {
-    data: representativeTrip,
-    error: tripError,
-  } = await supabase
-    .from('trips')
-    .select('id')
-    .eq('destination_id', destinationId)
-    .eq('status', 'active')
-    .gte('end_date', getToday())
-    .order('start_date', {
-      ascending: true,
-    })
-    .limit(1)
-    .single()
+  const { data: representativeTrips, error: tripError } =
+    await supabase
+      .from('trips')
+      .select('id, destination_id, start_date')
+      .in('destination_id', destinationIds)
+      .eq('status', 'active')
+      .gte('end_date', getToday())
+      .order('start_date', { ascending: true })
 
-  if (tripError || !representativeTrip) {
-    throw new Error(
-      'Kohteelle ei löytynyt tulevaa lähtöä.'
-    )
+  if (tripError) {
+    throw new Error(tripError.message)
   }
+
+  const tripByDestination = new Map<string, string>()
+
+  for (const trip of representativeTrips || []) {
+    if (!tripByDestination.has(trip.destination_id)) {
+      tripByDestination.set(trip.destination_id, trip.id)
+    }
+  }
+
+  const missingDestination = destinationIds.find(
+    (destinationId) => !tripByDestination.has(destinationId)
+  )
+
+  if (missingDestination) {
+    throw new Error('Jollekin valitulle kohteelle ei löytynyt tulevaa lähtöä.')
+  }
+
+  const rows = destinationIds.flatMap((destinationId) =>
+    planItems.map((item) => ({
+      destination_id: destinationId,
+      trip_id: tripByDestination.get(destinationId),
+      ...item,
+      status: 'planned',
+      created_by: createdBy,
+    }))
+  )
 
   const { error } = await supabase
     .from('marketing_plan')
-    .insert(
-      planItems.map((item) => ({
-        destination_id: destinationId,
-        trip_id: representativeTrip.id,
-        ...item,
-        status: 'planned',
-        created_by: createdBy,
-      }))
-    )
+    .insert(rows)
 
   if (error) {
-    throw new Error(
-      error.message
-    )
+    throw new Error(error.message)
   }
 
   revalidatePath('/')
-  revalidatePath(
-    `/trips/${representativeTrip.id}`
-  )
+
+  for (const tripId of tripByDestination.values()) {
+    revalidatePath(`/trips/${tripId}`)
+  }
 
   const selectedMonth =
     planItems
@@ -143,6 +154,11 @@ export default async function NewPlanPage({
   const requestedDestinationId =
     getSingleParam(
       resolvedSearchParams.destination
+    )
+
+  const requestedDate =
+    getSingleParam(
+      resolvedSearchParams.date
     )
 
   const [allTrips, channels] =
@@ -278,6 +294,48 @@ export default async function NewPlanPage({
           padding-top: 4px;
         }
 
+        .destination-checkboxes {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 9px;
+          max-height: 330px;
+          overflow-y: auto;
+          padding: 2px;
+        }
+
+        .destination-checkbox {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 11px 12px;
+          border: 1px solid #dbe5ee;
+          border-radius: 10px;
+          background: #f8fbfd;
+          cursor: pointer;
+        }
+
+        .destination-checkbox input {
+          width: 17px;
+          height: 17px;
+          margin-top: 2px;
+          accent-color: #00aaff;
+        }
+
+        .destination-checkbox span {
+          display: grid;
+          gap: 2px;
+        }
+
+        .destination-checkbox strong {
+          color: #003c70;
+          font-size: 13px;
+        }
+
+        .destination-checkbox small {
+          color: #687789;
+          font-size: 11px;
+        }
+
         .trip-count {
           margin: 0;
           color: #687789;
@@ -290,6 +348,10 @@ export default async function NewPlanPage({
           .plan-form-grid {
             grid-template-columns:
               1fr;
+          }
+
+          .destination-checkboxes {
+            grid-template-columns: 1fr;
           }
 
           .plan-card {
@@ -343,50 +405,35 @@ export default async function NewPlanPage({
               createMarketingPlan
             }
           >
-            <div className="plan-field">
-              <label htmlFor="destination_id">
-                Kohde{' '}
-                <span className="required-mark">
-                  *
-                </span>
-              </label>
-
-              <select
-                id="destination_id"
-                name="destination_id"
-                defaultValue={
-                  defaultDestinationId
-                }
-                required
-              >
-                <option value="">
-                  Valitse kohde
-                </option>
-
-                {destinations.map((destination) => (
-                  <option
-                    key={destination.key}
-                    value={destination.key}
-                  >
-                    {destination.name} ·{' '}
-                    {destination.country}
-                  </option>
-                ))}
-              </select>
-
-              <p className="trip-count">
-                Valittavana{' '}
-                {destinations.length}{' '}
-                {destinations.length === 1
-                  ? 'kohde'
-                  : 'kohdetta'}.
-                Lähtöpäivät eivät näy valinnassa.
+            <fieldset className="plan-items-fieldset">
+              <legend>Kohteet <span className="required-mark">*</span></legend>
+              <p className="plan-items-intro">
+                Valitse kaikki kohteet, jotka ovat mukana tässä markkinointisuoritteessa.
               </p>
-            </div>
+              <div className="destination-checkboxes">
+                {destinations.map((destination) => (
+                  <label className="destination-checkbox" key={destination.key}>
+                    <input
+                      type="checkbox"
+                      name="destination_id"
+                      value={destination.key}
+                      defaultChecked={destination.key === defaultDestinationId}
+                    />
+                    <span>
+                      <strong>{destination.name}</strong>
+                      <small>{destination.country}</small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className="trip-count">
+                Valittavana {destinations.length} {destinations.length === 1 ? 'kohde' : 'kohdetta'}.
+              </p>
+            </fieldset>
 
             <MarketingPlanItems
               channelNames={channels.map((channel) => channel.name)}
-              defaultDate={getToday()}
+              defaultDate={requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : getToday()}
             />
 
             <div className="plan-field">
