@@ -101,6 +101,8 @@ export default async function CalendarDayPage({
         .day-channel { width: fit-content; padding: 4px 7px; border-radius: 6px; background: #eef7fc; color: var(--navy); font-size: 11px; font-weight: 800; }
         .day-performances { display: grid; gap: 8px; margin-top: 5px; }
         .day-performance { padding: 10px 12px; border: 1px solid #dbe4ee; border-radius: 10px; background: #f8fbfd; }
+        .day-performance-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .day-edit-button { padding: 6px 10px; font-size: 12px; }
       `}</style>
     </>
   )
@@ -122,7 +124,10 @@ function DayPlannedItem({
       <div className="day-performances">
         {performances.map((performance) => (
           <div className="day-performance" key={performance.id}>
-            <span className="day-channel">{performance.channel}</span>
+            <div className="day-performance-top">
+              <span className="day-channel">{performance.channel}</span>
+              <Link className="button secondary day-edit-button" href={`/plan/${performance.id.replace('plan-', '')}/edit`}>Muokkaa</Link>
+            </div>
             <p><strong>{performance.title}</strong></p>
             {performance.destinations && performance.destinations.length > 1 ? (
               <p className="meta">
