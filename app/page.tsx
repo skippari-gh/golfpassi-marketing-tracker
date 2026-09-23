@@ -1251,14 +1251,16 @@ export default async function Home({
         }
 
         .month-calendar-wrapper {
-          overflow-x: auto;
+          width: 100%;
+          overflow-x: hidden;
           padding-bottom: 5px;
         }
 
         .month-calendar {
           display: grid;
-          grid-template-columns: repeat(7, minmax(125px, 1fr));
-          min-width: 875px;
+          grid-template-columns: repeat(7, minmax(0, 1fr));
+          width: 100%;
+          min-width: 0;
           border-top: 1px solid #dce5eb;
           border-left: 1px solid #dce5eb;
           background: #ffffff;
@@ -1277,8 +1279,9 @@ export default async function Home({
         }
 
         .month-calendar-day {
-          min-height: 145px;
-          padding: 8px;
+          min-width: 0;
+          min-height: 132px;
+          padding: 6px;
           border-right: 1px solid #dce5eb;
           border-bottom: 1px solid #dce5eb;
           background: #ffffff;
@@ -1295,8 +1298,8 @@ export default async function Home({
 
         .month-calendar-day-link {
           display: block;
-          margin: -8px -8px 7px;
-          padding: 8px;
+          margin: -6px -6px 5px;
+          padding: 6px;
           border-radius: 5px;
           text-decoration: none;
         }
@@ -1338,7 +1341,8 @@ export default async function Home({
         .month-calendar-event {
           display: grid;
           gap: 2px;
-          padding: 6px;
+          min-width: 0;
+          padding: 5px;
           border-left: 3px solid var(--gp-orange);
           border-radius: 5px;
           background: #fff7ec;
