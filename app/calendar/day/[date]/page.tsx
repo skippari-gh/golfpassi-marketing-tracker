@@ -124,6 +124,11 @@ function DayPlannedItem({
           <div className="day-performance" key={performance.id}>
             <span className="day-channel">{performance.channel}</span>
             <p><strong>{performance.title}</strong></p>
+            {performance.destinations && performance.destinations.length > 1 ? (
+              <p className="meta">
+                Kohteet: {performance.destinations.map((destination) => destination.name).join(', ')}
+              </p>
+            ) : null}
             {performance.notes ? <p className="meta">{performance.notes}</p> : null}
           </div>
         ))}
