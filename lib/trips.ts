@@ -841,8 +841,16 @@ export async function getMarketingCalendar() {
     flatPlanItems
       .filter((item) => item.kind === 'done')
       .map((item) => ({
-        ...item,
+        id: item.id,
         kind: 'done' as const,
+        date: item.date,
+        destination_id: item.destination_id,
+        trip_id: item.trip_id,
+        trip_name: item.trip_name,
+        country: item.country,
+        channel: item.channel,
+        title: item.title,
+        notes: item.notes,
       }))
 
   return [
