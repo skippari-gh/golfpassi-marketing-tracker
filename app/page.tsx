@@ -252,12 +252,14 @@ function MonthCalendar({
                     key={`${event.kind}-${event.id}`}
                   >
                     <span>{event.kind === 'done' ? 'Tehty' : event.overdue ? 'Myöhässä' : event.channel}</span>
-                    {event.tripId ? (
+                    {event.kind === 'planned' ? (
+                      <Link href={`/plan/${event.id.replace('plan-', '')}/edit`}>{event.title}</Link>
+                    ) : event.tripId ? (
                       <Link href={`/trips/${event.tripId}`}>{event.destination}</Link>
                     ) : (
                       <strong>{event.destination}</strong>
                     )}
-                    <small>{event.title}</small>
+                    <small>{event.kind === 'planned' ? event.destination : event.title}</small>
                   </article>
                 ))}
               </div>
