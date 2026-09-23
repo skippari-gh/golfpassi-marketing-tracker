@@ -82,6 +82,7 @@ type FlatMarketingCalendarItem = MarketingCalendarItemBase & {
   channel: string
   title: string
   notes: string | null
+  destinations?: { id: string; name: string; country: string }[]
 }
 
 function daysBetween(
