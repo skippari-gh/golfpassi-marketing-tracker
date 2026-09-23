@@ -80,7 +80,7 @@ function normalizeView(
 }
 
 function normalizeLayout(value: string | undefined): CalendarLayout {
-  return value === 'month' ? 'month' : 'list'
+  return value === 'list' ? 'list' : 'month'
 }
 
 function changeMonth(
