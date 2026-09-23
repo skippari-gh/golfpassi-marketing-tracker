@@ -688,11 +688,11 @@ export async function getMarketingCalendar() {
 
       const linkedDestinations = (planLinksByPlanId.get(plan.id) || [])
         .map((link) => destinationById.get(link.destination_id))
-        .filter(Boolean)
+        .filter((linkedDestination): linkedDestination is NonNullable<typeof linkedDestination> => Boolean(linkedDestination))
         .map((linkedDestination) => ({
-          id: linkedDestination!.id,
-          name: linkedDestination!.name,
-          country: linkedDestination!.country,
+          id: linkedDestination.id,
+          name: linkedDestination.name,
+          country: linkedDestination.country,
         }))
 
       const status = String(
