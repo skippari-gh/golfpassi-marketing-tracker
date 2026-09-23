@@ -233,10 +233,17 @@ function MonthCalendar({
 
           return (
             <section className={`month-calendar-day${date === today ? ' today' : ''}`} key={date}>
-              <div className="month-calendar-day-number">
-                <span>{dayNumber}</span>
-                {date === today && <small>Tänään</small>}
-              </div>
+              <Link
+                className="month-calendar-day-link"
+                href={`/calendar/day/${date}`}
+                aria-label={`Avaa päivän ${date} markkinointi`}
+              >
+                <div className="month-calendar-day-number">
+                  <span>{dayNumber}</span>
+                  {date === today && <small>Tänään</small>}
+                </div>
+                <span className="month-calendar-day-open">Avaa päivä</span>
+              </Link>
 
               <div className="month-calendar-events">
                 {events.map((event) => (
@@ -1277,6 +1284,26 @@ export default async function Home({
         .month-calendar-day.today {
           background: #f3fbff;
           box-shadow: inset 0 0 0 2px var(--gp-blue);
+        }
+
+        .month-calendar-day-link {
+          display: block;
+          margin: -8px -8px 7px;
+          padding: 8px;
+          border-radius: 5px;
+          text-decoration: none;
+        }
+
+        .month-calendar-day-link:hover {
+          background: var(--gp-light-blue);
+        }
+
+        .month-calendar-day-open {
+          display: block;
+          margin-top: 3px;
+          color: var(--gp-blue);
+          font-size: 9px;
+          font-weight: 800;
         }
 
         .month-calendar-day-number {
