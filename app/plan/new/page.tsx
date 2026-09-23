@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { getMarketingPlanItems } from '../../../lib/marketing-plan'
 import { groupTripsByDestination } from '../../../lib/trip-destinations'
 import MarketingPlanItems from '../../components/MarketingPlanItems'
+import DestinationSelector from '../../components/DestinationSelector'
 import {
   getChannels,
   getTripsWithPriority,
@@ -358,8 +359,23 @@ export default async function NewPlanPage({
           font-size: 11px;
         }
 
+        .selected-destinations {
+          margin-top: 12px;
+          padding: 12px 14px;
+          border: 1px solid #c9e0ee;
+          border-radius: 10px;
+          background: #f3fbff;
+          color: #003c70;
+          font-size: 13px;
+        }
+
+        .selected-destinations > strong { display: block; margin-bottom: 6px; }
+        .selected-destinations ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+        .selected-destinations li { padding: 4px 8px; border-radius: 999px; background: #fff; border: 1px solid #c9e0ee; }
+        .selected-destinations p { margin: 0; color: #687789; }
+
         .trip-count {
-          margin: 0;
+          margin: 8px 0 0;
           color: #687789;
           font-size: 12px;
         }
@@ -432,22 +448,14 @@ export default async function NewPlanPage({
               <p className="plan-items-intro">
                 Valitse kaikki kohteet, jotka ovat mukana tässä markkinointisuoritteessa.
               </p>
-              <div className="destination-checkboxes">
-                {destinations.map((destination) => (
-                  <label className="destination-checkbox" key={destination.key}>
-                    <input
-                      type="checkbox"
-                      name="destination_id"
-                      value={destination.key}
-                      defaultChecked={destination.key === defaultDestinationId}
-                    />
-                    <span>
-                      <strong>{destination.name}</strong>
-                      <small>{destination.country}</small>
-                    </span>
-                  </label>
-                ))}
-              </div>
+              <DestinationSelector
+                destinations={destinations.map((destination) => ({
+                  id: destination.key,
+                  name: destination.name,
+                  country: destination.country,
+                  defaultChecked: destination.key === defaultDestinationId,
+                }))}
+              />
               <p className="trip-count">
                 Valittavana {destinations.length} {destinations.length === 1 ? 'kohde' : 'kohdetta'}.
               </p>
