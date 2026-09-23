@@ -405,6 +405,13 @@ function CalendarRow({
                   </p>
                 ) : null}
 
+                <Link
+                  className="button secondary calendar-edit-button"
+                  href={`/plan/${performance.id.replace('plan-', '')}/edit`}
+                >
+                  Muokkaa
+                </Link>
+
                 <ConfirmActionButton
                   action={archiveCalendarItem}
                   itemId={performance.id}
