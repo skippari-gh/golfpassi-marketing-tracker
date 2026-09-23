@@ -574,7 +574,7 @@ export async function getMarketingCalendar() {
       error: destinationsError,
     },
     {
-      data: planDestinationLinks,
+      data: planDestinationLinksRaw,
       error: planDestinationLinksError,
     },
   ] = await Promise.all([
@@ -655,9 +655,10 @@ export async function getMarketingCalendar() {
     ])
   )
 
+  const planDestinationLinks = (planDestinationLinksRaw || []) as any[]
   const planLinksByPlanId = new Map<string, any[]>()
 
-  for (const link of planDestinationLinks || []) {
+  for (const link of planDestinationLinks) {
     const links = planLinksByPlanId.get(link.marketing_plan_id) || []
     links.push(link)
     planLinksByPlanId.set(link.marketing_plan_id, links)
