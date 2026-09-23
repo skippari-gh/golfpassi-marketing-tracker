@@ -664,13 +664,10 @@ export async function getMarketingCalendar() {
     planLinksByPlanId.set(link.marketing_plan_id, links)
   }
 
-  const flatPlanItems:
-    (FlatMarketingCalendarItem & {
-      destinations?: { id: string; name: string; country: string }[]
-    })[] = (
-    plans || []
+  const flatPlanItems = (
+    (plans || []) as any[]
   )
-    .map((plan: any) => {
+    .map((plan): FlatMarketingCalendarItem => {
       const trip = plan.trip_id
         ? tripById.get(
             plan.trip_id
