@@ -102,22 +102,44 @@ async function createMarketingPlan(
     throw new Error('Jollekin valitulle kohteelle ei löytynyt tulevaa lähtöä.')
   }
 
-  const rows = destinationIds.flatMap((destinationId) =>
-    planItems.map((item) => ({
+  const representativeDestinationId = destinationIds[0]
+  const representativeTripId = tripByDestination.get(representativeDestinationId)
+
+  for (const item of planItems) {
+    const { data: plan, error } = await supabase
+      .from('marketing_plan')
+      .insert({
+        destination_id: representativeDestinationId,
+        trip_id: representativeTripId,
+        ...item,
+        status: 'planned',
+        created_by: createdBy,
+      })
+      .select('id')
+      .single()
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    const destinationLinks = destinationIds.map((destinationId) => ({
+      marketing_plan_id: plan.id,
       destination_id: destinationId,
       trip_id: tripByDestination.get(destinationId),
-      ...item,
-      status: 'planned',
-      created_by: createdBy,
     }))
-  )
 
-  const { error } = await supabase
-    .from('marketing_plan')
-    .insert(rows)
+    const { error: linkError } = await supabase
+      .from('marketing_plan_destinations')
+      .insert(destinationLinks)
 
-  if (error) {
-    throw new Error(error.message)
+    if (linkError) {
+      await supabase
+        .from('marketing_plan')
+        .delete()
+        .eq('id', plan.id)
+
+      throw new Error(linkError.message)
+    }
   }
 
   revalidatePath('/')
@@ -394,8 +416,8 @@ export default async function NewPlanPage({
             </h2>
 
             <p className="meta">
-              Kaikki suoritukset näkyvät etusivun
-              markkinointikalenterissa saman kohteen kortilla.
+              Yksi suorite voidaan liittää useaan kohteeseen.
+              Kalenterissa se näkyy yhtenä markkinointisuoritteena.
             </p>
           </div>
 
