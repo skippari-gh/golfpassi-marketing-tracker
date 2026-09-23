@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { supabase } from '../../../../lib/supabase'
 import { groupTripsByDestination } from '../../../../lib/trip-destinations'
 import { getChannels, getTripsWithPriority } from '../../../../lib/trips'
+import DestinationSelector from '../../../components/DestinationSelector'
 
 export const dynamic = 'force-dynamic'
 
@@ -143,22 +144,14 @@ export default async function EditMarketingPlanPage({
 
             <fieldset>
               <legend>Kohteet *</legend>
-              <div className="destination-checkboxes">
-                {destinations.map((destination) => (
-                  <label className="destination-checkbox" key={destination.key}>
-                    <input
-                      type="checkbox"
-                      name="destination_id"
-                      value={destination.key}
-                      defaultChecked={selectedDestinationIds.has(destination.key)}
-                    />
-                    <span>
-                      <strong>{destination.name}</strong>
-                      <small>{destination.country}</small>
-                    </span>
-                  </label>
-                ))}
-              </div>
+              <DestinationSelector
+                destinations={destinations.map((destination) => ({
+                  id: destination.key,
+                  name: destination.name,
+                  country: destination.country,
+                  defaultChecked: selectedDestinationIds.has(destination.key),
+                }))}
+              />
             </fieldset>
 
             <div className="edit-grid">
@@ -209,6 +202,11 @@ export default async function EditMarketingPlanPage({
         .destination-checkbox input { width: 17px; height: 17px; margin-top: 2px; }
         .destination-checkbox span { display: grid; gap: 2px; }
         .destination-checkbox small { color: #687789; }
+        .selected-destinations { margin-top: 12px; padding: 12px 14px; border: 1px solid #c9e0ee; border-radius: 10px; background: #f3fbff; color: var(--navy); font-size: 13px; }
+        .selected-destinations > strong { display: block; margin-bottom: 6px; }
+        .selected-destinations ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+        .selected-destinations li { padding: 4px 8px; border-radius: 999px; background: #fff; border: 1px solid #c9e0ee; }
+        .selected-destinations p { margin: 0; color: #687789; }
         @media (max-width: 680px) { .edit-grid, .destination-checkboxes { grid-template-columns: 1fr; } }
       `}</style>
     </>
