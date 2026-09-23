@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { supabase } from '../../../../../lib/supabase'
-import { groupTripsByDestination } from '../../../../../lib/trip-destinations'
-import { getChannels, getTripsWithPriority } from '../../../../../lib/trips'
+import { supabase } from '../../../../lib/supabase'
+import { groupTripsByDestination } from '../../../../lib/trip-destinations'
+import { getChannels, getTripsWithPriority } from '../../../../lib/trips'
 
 export const dynamic = 'force-dynamic'
 
