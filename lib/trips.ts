@@ -50,6 +50,7 @@ export type MarketingCalendarPerformance = {
   channel: string
   title: string
   notes: string | null
+  destinations?: { id: string; name: string; country: string }[]
 }
 
 type MarketingCalendarItemBase = {
@@ -571,6 +572,10 @@ export async function getMarketingCalendar() {
       data: destinations,
       error: destinationsError,
     },
+    {
+      data: planDestinationLinks,
+      error: planDestinationLinksError,
+    },
   ] = await Promise.all([
     supabase
       .from('trips')
@@ -599,6 +604,10 @@ export async function getMarketingCalendar() {
     supabase
       .from('destinations')
       .select('id, name, country'),
+
+    supabase
+      .from('marketing_plan_destinations')
+      .select('marketing_plan_id, destination_id, trip_id'),
   ])
 
   if (tripsError) {
@@ -625,6 +634,12 @@ export async function getMarketingCalendar() {
     )
   }
 
+  if (planDestinationLinksError) {
+    throw new Error(
+      planDestinationLinksError.message
+    )
+  }
+
   const tripById = new Map(
     (trips || []).map((trip) => [
       trip.id,
@@ -639,8 +654,18 @@ export async function getMarketingCalendar() {
     ])
   )
 
+  const planLinksByPlanId = new Map<string, any[]>()
+
+  for (const link of planDestinationLinks || []) {
+    const links = planLinksByPlanId.get(link.marketing_plan_id) || []
+    links.push(link)
+    planLinksByPlanId.set(link.marketing_plan_id, links)
+  }
+
   const flatPlanItems:
-    FlatMarketingCalendarItem[] = (
+    (FlatMarketingCalendarItem & {
+      destinations?: { id: string; name: string; country: string }[]
+    })[] = (
     plans || []
   )
     .map((plan: any) => {
@@ -659,6 +684,15 @@ export async function getMarketingCalendar() {
               trip.destination_id
             )
           : null
+
+      const linkedDestinations = (planLinksByPlanId.get(plan.id) || [])
+        .map((link) => destinationById.get(link.destination_id))
+        .filter(Boolean)
+        .map((linkedDestination) => ({
+          id: linkedDestination!.id,
+          name: linkedDestination!.name,
+          country: linkedDestination!.country,
+        }))
 
       const status = String(
         plan.status || ''
@@ -720,7 +754,8 @@ export async function getMarketingCalendar() {
             plan.description,
             plan.content
           ) || null,
-      } satisfies FlatMarketingCalendarItem
+        destinations: linkedDestinations,
+      }
     })
     .filter(
       (item) => item.date
@@ -840,6 +875,7 @@ function groupPlannedItems(
       channel: item.channel,
       title: item.title,
       notes: item.notes,
+      destinations: item.destinations,
     }
 
     const existingGroup = groups.get(groupKey)
