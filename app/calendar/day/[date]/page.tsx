@@ -44,7 +44,7 @@ export default async function CalendarDayPage({
       <main className="container day-container">
         <nav className="nav">
           <Link href={`/?month=${date.slice(0, 7)}&layout=month`}>← Kuukausikalenteriin</Link>
-          <Link className="button" href={`/plan/new?date=${date}`}>+ Lisää suorite tälle päivälle</Link>
+          <Link className="button day-add-button" href={`/plan/new?date=${date}`}>+ Lisää suorite</Link>
         </nav>
 
         <section className="card day-heading">
@@ -89,6 +89,8 @@ export default async function CalendarDayPage({
 
       <style>{`
         .day-container { max-width: 920px; }
+        .nav .day-add-button { background: var(--orange); color: #fff; border-color: var(--orange); font-weight: 800; }
+        .nav .day-add-button:hover { color: #fff; filter: brightness(.96); }
         .day-heading { margin-bottom: 26px; }
         .day-heading h2 { margin: 4px 0 6px; color: var(--navy); text-transform: capitalize; }
         .day-kicker { margin: 0; color: var(--blue); font-size: 12px; font-weight: 800; text-transform: uppercase; }
