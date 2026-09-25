@@ -17,6 +17,7 @@ export default function DestinationSelector({
   const [selected, setSelected] = useState(
     destinations.filter((destination) => destination.defaultChecked).map((destination) => destination.id)
   )
+  const [query, setQuery] = useState('')
 
   function toggle(id: string, checked: boolean) {
     setSelected((current) =>
@@ -25,11 +26,33 @@ export default function DestinationSelector({
   }
 
   const selectedDestinations = destinations.filter((destination) => selected.includes(destination.id))
+  const normalizedQuery = query.trim().toLocaleLowerCase('fi')
+  const visibleDestinations = normalizedQuery
+    ? destinations.filter((destination) =>
+        `${destination.name} ${destination.country}`.toLocaleLowerCase('fi').includes(normalizedQuery)
+      )
+    : destinations
 
   return (
     <>
+      <div className="destination-search">
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Kirjoita kohteen tai maan nimi…"
+          aria-label="Hae kohdetta"
+          autoComplete="off"
+        />
+        {query && (
+          <button type="button" onClick={() => setQuery('')} className="destination-search-clear">
+            Tyhjennä
+          </button>
+        )}
+      </div>
+
       <div className="destination-checkboxes">
-        {destinations.map((destination) => (
+        {visibleDestinations.map((destination) => (
           <label className="destination-checkbox" key={destination.id}>
             <input
               type="checkbox"
@@ -44,6 +67,9 @@ export default function DestinationSelector({
             </span>
           </label>
         ))}
+        {visibleDestinations.length === 0 && (
+          <p className="destination-no-results">Hakua vastaavaa kohdetta ei löytynyt.</p>
+        )}
       </div>
 
       <div className="selected-destinations" aria-live="polite">
