@@ -151,9 +151,89 @@ function getBlackFridayDate(year: number) {
   return `${year}-11-${String(thanksgiving + 1).padStart(2, '0')}`
 }
 
+function getEasterSunday(year: number) {
+  const a = year % 19
+  const b = Math.floor(year / 100)
+  const cc = year % 100
+  const d = Math.floor(b / 4)
+  const e = b % 4
+  const f = Math.floor((b + 8) / 25)
+  const g = Math.floor((b - f + 1) / 3)
+  const h = (19 * a + b - d - g + 15) % 30
+  const i = Math.floor(cc / 4)
+  const k = cc % 4
+  const l = (32 + 2 * e + 2 * i - h - k) % 7
+  const m = Math.floor((a + 11 * h + 22 * l) / 451)
+  const month = Math.floor((h + l - 7 * m + 114) / 31)
+  const day = ((h + l - 7 * m + 114) % 31) + 1
+  return new Date(Date.UTC(year, month - 1, day))
+}
+
+function isoDate(date: Date) {
+  return date.toISOString().slice(0, 10)
+}
+
+function offsetDate(date: Date, days: number) {
+  const result = new Date(date)
+  result.setUTCDate(result.getUTCDate() + days)
+  return isoDate(result)
+}
+
+function nthSunday(year: number, monthIndex: number, nth: number) {
+  const first = new Date(Date.UTC(year, monthIndex, 1))
+  const firstSunday = 1 + ((7 - first.getUTCDay()) % 7)
+  return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(firstSunday + (nth - 1) * 7).padStart(2, '0')}`
+}
+
+function saturdayInRange(year: number, monthIndex: number, startDay: number) {
+  for (let day = startDay; day < startDay + 7; day += 1) {
+    const value = new Date(Date.UTC(year, monthIndex, day))
+    if (value.getUTCDay() === 6) return isoDate(value)
+  }
+  return ''
+}
+
+function getFinnishHolidayMarkers(date: string, year: number) {
+  const markers: string[] = []
+  const easter = getEasterSunday(year)
+  const fixed: Record<string, string> = {
+    [`${year}-01-01`]: 'Uudenvuodenpäivä',
+    [`${year}-01-06`]: 'Loppiainen',
+    [`${year}-05-01`]: 'Vappu',
+    [`${year}-12-06`]: 'Itsenäisyyspäivä',
+    [`${year}-12-24`]: 'Jouluaatto',
+    [`${year}-12-25`]: 'Joulupäivä',
+    [`${year}-12-26`]: 'Tapaninpäivä',
+  }
+  if (fixed[date]) markers.push(fixed[date])
+
+  const moving: Array<[string, string]> = [
+    [offsetDate(easter, -2), 'Pitkäperjantai'],
+    [isoDate(easter), 'Pääsiäispäivä'],
+    [offsetDate(easter, 1), '2. pääsiäispäivä'],
+    [offsetDate(easter, 39), 'Helatorstai'],
+    [offsetDate(easter, 49), 'Helluntaipäivä'],
+    [saturdayInRange(year, 5, 20), 'Juhannuspäivä'],
+    [saturdayInRange(year, 9, 31), 'Pyhäinpäivä'],
+    [nthSunday(year, 4, 2), 'Äitienpäivä'],
+    [nthSunday(year, 10, 2), 'Isänpäivä'],
+  ]
+  for (const [holidayDate, label] of moving) {
+    if (date === holidayDate) markers.push(label)
+  }
+
+  const midsummerDay = saturdayInRange(year, 5, 20)
+  if (midsummerDay) {
+    const midsummer = new Date(`${midsummerDay}T00:00:00Z`)
+    if (date === offsetDate(midsummer, -1)) markers.push('Juhannusaatto')
+  }
+
+  return markers
+}
+
 function getCalendarMarkers(date: string) {
   const year = Number(date.slice(0, 4))
-  const markers: string[] = []
+  const markers: string[] = getFinnishHolidayMarkers(date, year)
 
   if (date === `${year}-11-11`) markers.push('Singles Day')
   if (date === getBlackFridayDate(year)) markers.push('Black Friday')
