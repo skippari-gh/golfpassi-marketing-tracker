@@ -344,7 +344,6 @@ export default async function TripsPage({
                             target="_blank"
                             rel="noreferrer"
                             title="Avaa ensimmäinen 7 vrk matka Golfpassin sivulla"
-                            onClick={(event) => event.stopPropagation()}
                           >
                             ↗
                           </a>
