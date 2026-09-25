@@ -94,6 +94,82 @@ async function updateMarketingPlan(formData: FormData) {
   redirect(`/calendar/day/${plannedDate}`)
 }
 
+async function duplicateMarketingPlan(formData: FormData) {
+  'use server'
+
+  const planId = String(formData.get('plan_id') || '')
+  const plannedDate = String(formData.get('planned_date') || '')
+  const channel = String(formData.get('channel') || '').trim()
+  const title = String(formData.get('title') || '').trim()
+  const notes = String(formData.get('notes') || '').trim()
+  const destinationIds = formData.getAll('destination_id').map(String).filter(Boolean)
+  const generalMarketing = formData.get('general_marketing') === 'true'
+
+  if (!planId || !plannedDate || !channel || !title || (destinationIds.length === 0 && !generalMarketing)) {
+    throw new Error('Täytä päivämäärä, kanava ja toimenpide sekä valitse kohde tai Yleinen.')
+  }
+
+  const { data: trips, error: tripsError } = destinationIds.length
+    ? await supabase
+        .from('trips')
+        .select('id, destination_id, start_date')
+        .in('destination_id', destinationIds)
+        .eq('status', 'active')
+        .gte('end_date', getToday())
+        .order('start_date', { ascending: true })
+    : { data: [], error: null }
+
+  if (tripsError) throw new Error(tripsError.message)
+
+  const tripByDestination = new Map<string, string>()
+  for (const trip of trips || []) {
+    if (!tripByDestination.has(trip.destination_id)) tripByDestination.set(trip.destination_id, trip.id)
+  }
+
+  const missingDestination = destinationIds.find((id) => !tripByDestination.has(id))
+  if (missingDestination) throw new Error('Jollekin valitulle kohteelle ei löytynyt tulevaa lähtöä.')
+
+  const representativeDestinationId = destinationIds[0] || null
+  const representativeTripId = representativeDestinationId
+    ? tripByDestination.get(representativeDestinationId) || null
+    : null
+
+  const { data: copy, error } = await supabase
+    .from('marketing_plan')
+    .insert({
+      planned_date: plannedDate,
+      channel,
+      title,
+      notes: notes || null,
+      destination_id: representativeDestinationId,
+      trip_id: representativeTripId,
+      status: 'planned',
+    })
+    .select('id')
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  if (destinationIds.length) {
+    const { error: linkError } = await supabase
+      .from('marketing_plan_destinations')
+      .insert(destinationIds.map((destinationId) => ({
+        marketing_plan_id: copy.id,
+        destination_id: destinationId,
+        trip_id: tripByDestination.get(destinationId),
+      })))
+
+    if (linkError) {
+      await supabase.from('marketing_plan').delete().eq('id', copy.id)
+      throw new Error(linkError.message)
+    }
+  }
+
+  revalidatePath('/')
+  revalidatePath(`/calendar/day/${plannedDate}`)
+  redirect(`/plan/${copy.id}/edit`)
+}
+
 export default async function EditMarketingPlanPage({
   params,
 }: {
@@ -182,6 +258,7 @@ export default async function EditMarketingPlanPage({
 
             <div className="actions">
               <button className="button" type="submit">Tallenna muutokset</button>
+              <button className="button secondary" type="submit" formAction={duplicateMarketingPlan}>Duplikoi suorite</button>
               <Link className="button secondary" href={`/calendar/day/${plan.planned_date}`}>Peruuta</Link>
             </div>
           </form>
