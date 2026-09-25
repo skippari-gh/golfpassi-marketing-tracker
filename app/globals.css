@@ -28,6 +28,20 @@ th { background:#f0f6fb; }
 
 .trips-table {
   min-width: 880px;
+  table-layout: fixed;
+}
+
+.trips-table th:nth-child(1) { width: 30%; }
+.trips-table th:nth-child(2) { width: 13%; }
+.trips-table th:nth-child(3) { width: 11%; }
+.trips-table th:nth-child(4) { width: 18%; }
+.trips-table th:nth-child(5) { width: 16%; }
+.trips-table th:nth-child(6) { width: 12%; }
+
+.trips-table th a {
+  display: block;
+  color: inherit;
+  font-weight: inherit;
 }
 
 .trip-destination-cell {
@@ -41,7 +55,7 @@ th { background:#f0f6fb; }
 .trip-destination-summary,
 .trip-departure-list-row {
   display: grid;
-  grid-template-columns: minmax(250px, 2fr) minmax(110px, .8fr) minmax(90px, .65fr) minmax(150px, 1fr) minmax(110px, .8fr) minmax(80px, .55fr);
+  grid-template-columns: 30fr 13fr 11fr 18fr 16fr 12fr;
   align-items: center;
   gap: 12px;
   padding: 12px;
