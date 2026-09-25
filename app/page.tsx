@@ -144,6 +144,29 @@ function getCalendarUrl(
   return `/?month=${month}&view=${view}&layout=${layout}`
 }
 
+function getBlackFridayDate(year: number) {
+  const novemberFirst = new Date(Date.UTC(year, 10, 1))
+  const firstThursday = 1 + ((4 - novemberFirst.getUTCDay() + 7) % 7)
+  const thanksgiving = firstThursday + 21
+  return `${year}-11-${String(thanksgiving + 1).padStart(2, '0')}`
+}
+
+function getCalendarMarkers(date: string) {
+  const year = Number(date.slice(0, 4))
+  const markers: string[] = []
+
+  if (date === `${year}-11-11`) markers.push('Singles Day')
+  if (date === getBlackFridayDate(year)) markers.push('Black Friday')
+
+  const taxRefundDates: Record<number, string[]> = {
+    2026: ['2026-07-03', '2026-08-03', '2026-09-03', '2026-10-05', '2026-11-03', '2026-12-03'],
+  }
+
+  if (taxRefundDates[year]?.includes(date)) markers.push('Veronpalautukset')
+
+  return markers
+}
+
 function getMonthDates(monthValue: string) {
   const [year, month] = monthValue.split('-').map(Number)
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate()
@@ -229,6 +252,7 @@ function MonthCalendar({
           }
 
           const events = eventsByDate.get(date) || []
+          const markers = getCalendarMarkers(date)
           const dayNumber = Number(date.slice(-2))
 
           return (
@@ -246,6 +270,9 @@ function MonthCalendar({
               </Link>
 
               <div className="month-calendar-events">
+                {markers.map((marker) => (
+                  <div className="month-calendar-marker" key={marker}>{marker}</div>
+                ))}
                 {events.map((event) => (
                   <article
                     className={`month-calendar-event ${event.kind}${event.overdue ? ' overdue' : ''}`}
@@ -1338,6 +1365,17 @@ export default async function Home({
         .month-calendar-events {
           display: grid;
           gap: 5px;
+        }
+
+        .month-calendar-marker {
+          margin-bottom: 5px;
+          padding: 4px 6px;
+          border-radius: 6px;
+          background: #fff4e8;
+          color: #8a4300;
+          font-size: 11px;
+          font-weight: 800;
+          line-height: 1.2;
         }
 
         .month-calendar-event {
