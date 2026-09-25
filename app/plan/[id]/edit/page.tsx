@@ -23,7 +23,8 @@ async function updateMarketingPlan(formData: FormData) {
   const planId = String(formData.get('plan_id') || '')
   const destinationIds = formData.getAll('destination_id').map(String).filter(Boolean)
   const plannedDate = String(formData.get('planned_date') || '')
-  const channel = String(formData.get('channel') || '').trim()
+  const channels = formData.getAll('channel').map(String).map((value) => value.trim()).filter(Boolean)
+  const channel = channels.join(', ')
   const title = String(formData.get('title') || '').trim()
   const notes = String(formData.get('notes') || '').trim()
 
@@ -99,7 +100,8 @@ async function duplicateMarketingPlan(formData: FormData) {
 
   const planId = String(formData.get('plan_id') || '')
   const plannedDate = String(formData.get('planned_date') || '')
-  const channel = String(formData.get('channel') || '').trim()
+  const channels = formData.getAll('channel').map(String).map((value) => value.trim()).filter(Boolean)
+  const channel = channels.join(', ')
   const title = String(formData.get('title') || '').trim()
   const notes = String(formData.get('notes') || '').trim()
   const destinationIds = formData.getAll('destination_id').map(String).filter(Boolean)
@@ -238,15 +240,25 @@ export default async function EditMarketingPlanPage({
                 <span>Päivämäärä *</span>
                 <input name="planned_date" type="date" defaultValue={plan.planned_date} required />
               </label>
-              <label>
-                <span>Kanava *</span>
-                <select name="channel" defaultValue={plan.channel} required>
-                  <option value="">Valitse kanava</option>
-                  {channels.map((item) => (
-                    <option key={item.id} value={item.name}>{item.name}</option>
-                  ))}
-                </select>
-              </label>
+              <fieldset className="channel-fieldset">
+                <legend>Kanava *</legend>
+                <div className="channel-checkboxes">
+                  {channels.map((item) => {
+                    const selectedChannels = String(plan.channel || '').split(',').map((value) => value.trim())
+                    return (
+                      <label className="channel-checkbox" key={item.id}>
+                        <input
+                          name="channel"
+                          type="checkbox"
+                          value={item.name}
+                          defaultChecked={selectedChannels.includes(item.name)}
+                        />
+                        <span>{item.name}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </fieldset>
             </div>
 
             <label>
@@ -277,6 +289,10 @@ export default async function EditMarketingPlanPage({
         .edit-plan-form legend, .edit-plan-form label > span { display: block; margin-bottom: 7px; color: var(--navy); font-size: 14px; font-weight: 750; }
         .edit-plan-form input, .edit-plan-form select, .edit-plan-form textarea { width: 100%; box-sizing: border-box; border: 1px solid #cbd8e3; border-radius: 10px; padding: 11px 12px; font: inherit; background: #fff; }
         .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .channel-fieldset { border: 0; padding: 0; margin: 0; }
+        .channel-checkboxes { display: flex; flex-wrap: wrap; gap: 8px; }
+        .channel-checkbox { display: flex; align-items: center; gap: 7px; padding: 9px 11px; border: 1px solid #dbe5ee; border-radius: 10px; background: #f8fbfd; cursor: pointer; }
+        .channel-checkbox input { width: 17px; height: 17px; margin: 0; }
         .destination-search { display: flex; gap: 8px; margin-bottom: 10px; }
         .destination-search input { flex: 1; }
         .destination-search-clear { flex: 0 0 auto; border: 1px solid #cbd8e3; border-radius: 10px; padding: 0 14px; background: #fff; color: var(--navy); font: inherit; font-weight: 700; cursor: pointer; }
