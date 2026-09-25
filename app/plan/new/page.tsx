@@ -399,11 +399,10 @@ export default async function NewPlanPage({
       </header>
 
       <main className="container plan-container">
+        <div style={{ marginBottom: '14px' }}>
+          <Link href="/" className="back-home-link">← Etusivulle</Link>
+        </div>
         <nav className="nav">
-          <Link href="/">
-            Etusivu
-          </Link>
-
           <Link href="/trips">
             Matkat
           </Link>
