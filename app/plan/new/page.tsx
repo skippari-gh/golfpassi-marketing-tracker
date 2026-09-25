@@ -54,15 +54,17 @@ async function createMarketingPlan(
     .map((value) => String(value))
     .filter(Boolean)
 
+  const generalMarketing = formData.get('general_marketing') === 'true'
+
   const createdBy = String(
     formData.get(
       'created_by'
     ) || ''
   ).trim()
 
-  if (destinationIds.length === 0) {
+  if (destinationIds.length === 0 && !generalMarketing) {
     throw new Error(
-      'Valitse vähintään yksi kohde.'
+      'Valitse vähintään yksi kohde tai Yleinen.'
     )
   }
 
@@ -74,14 +76,15 @@ async function createMarketingPlan(
 
   const planItems = getMarketingPlanItems(formData)
 
-  const { data: representativeTrips, error: tripError } =
-    await supabase
-      .from('trips')
-      .select('id, destination_id, start_date')
-      .in('destination_id', destinationIds)
-      .eq('status', 'active')
-      .gte('end_date', getToday())
-      .order('start_date', { ascending: true })
+  const { data: representativeTrips, error: tripError } = destinationIds.length
+    ? await supabase
+        .from('trips')
+        .select('id, destination_id, start_date')
+        .in('destination_id', destinationIds)
+        .eq('status', 'active')
+        .gte('end_date', getToday())
+        .order('start_date', { ascending: true })
+    : { data: [], error: null }
 
   if (tripError) {
     throw new Error(tripError.message)
@@ -103,8 +106,10 @@ async function createMarketingPlan(
     throw new Error('Jollekin valitulle kohteelle ei löytynyt tulevaa lähtöä.')
   }
 
-  const representativeDestinationId = destinationIds[0]
-  const representativeTripId = tripByDestination.get(representativeDestinationId)
+  const representativeDestinationId = destinationIds[0] || null
+  const representativeTripId = representativeDestinationId
+    ? tripByDestination.get(representativeDestinationId) || null
+    : null
 
   for (const item of planItems) {
     const { data: plan, error } = await supabase
@@ -129,9 +134,11 @@ async function createMarketingPlan(
       trip_id: tripByDestination.get(destinationId),
     }))
 
-    const { error: linkError } = await supabase
-      .from('marketing_plan_destinations')
-      .insert(destinationLinks)
+    const { error: linkError } = destinationLinks.length
+      ? await supabase
+          .from('marketing_plan_destinations')
+          .insert(destinationLinks)
+      : { error: null }
 
     if (linkError) {
       await supabase
