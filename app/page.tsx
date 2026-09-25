@@ -1698,6 +1698,13 @@ export default async function Home({
           line-height: 1.5;
         }
 
+        .next-departure-date {
+          display: inline-block;
+          margin-top: 2px;
+          color: var(--gp-muted);
+          font-size: 12px;
+        }
+
         .priority-summary {
           display: -webkit-box;
           margin: 11px 0 0;
@@ -2339,9 +2346,16 @@ export default async function Home({
                           <p className="meta">
                             Seuraava lähtö:{' '}
                             <strong>
-                              {nextTrip.days_to_start}{' '}
-                              päivää
+                              {nextTrip.days_to_start === 0
+                                ? 'tänään'
+                                : nextTrip.days_to_start === 1
+                                  ? 'huomenna'
+                                  : `${nextTrip.days_to_start} päivän päästä`}
                             </strong>
+                            <br />
+                            <span className="next-departure-date">
+                              {formatDate(nextTrip.start_date)}
+                            </span>
                           </p>
 
                           <p className="meta">
