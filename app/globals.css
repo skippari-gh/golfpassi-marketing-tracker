@@ -81,6 +81,35 @@ th { background:#f0f6fb; }
   outline-offset: -3px;
 }
 
+.trip-section-row td {
+  padding: 18px 12px 9px;
+  border-bottom: 2px solid #d7e4ee;
+  background: #eaf4fb;
+  color: var(--navy);
+  font-size: 16px;
+}
+
+.trip-site-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 3px;
+  border: 1px solid #c9dce9;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--blue);
+  font-size: 14px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.trip-site-link:hover {
+  border-color: var(--blue);
+  background: #eef9ff;
+}
+
 .trip-destination-name {
   display: flex;
   align-items: center;
