@@ -18,6 +18,7 @@ export default function DestinationSelector({
     destinations.filter((destination) => destination.defaultChecked).map((destination) => destination.id)
   )
   const [query, setQuery] = useState('')
+  const [general, setGeneral] = useState(false)
 
   function toggle(id: string, checked: boolean) {
     setSelected((current) =>
@@ -26,6 +27,11 @@ export default function DestinationSelector({
   }
 
   const selectedDestinations = destinations.filter((destination) => selected.includes(destination.id))
+
+  function toggleGeneral(checked: boolean) {
+    setGeneral(checked)
+    if (checked) setSelected([])
+  }
   const normalizedQuery = query.trim().toLocaleLowerCase('fi')
   const visibleDestinations = normalizedQuery
     ? destinations.filter((destination) =>
@@ -52,6 +58,19 @@ export default function DestinationSelector({
       </div>
 
       <div className="destination-checkboxes">
+        <label className="destination-checkbox destination-general">
+          <input
+            type="checkbox"
+            name="general_marketing"
+            value="true"
+            checked={general}
+            onChange={(event) => toggleGeneral(event.target.checked)}
+          />
+          <span>
+            <strong>Yleinen</strong>
+            <small>Ei sidota yksittäiseen kohteeseen</small>
+          </span>
+        </label>
         {visibleDestinations.map((destination) => (
           <label className="destination-checkbox" key={destination.id}>
             <input
@@ -59,6 +78,7 @@ export default function DestinationSelector({
               name="destination_id"
               value={destination.id}
               checked={selected.includes(destination.id)}
+              disabled={general}
               onChange={(event) => toggle(destination.id, event.target.checked)}
             />
             <span>
@@ -73,8 +93,10 @@ export default function DestinationSelector({
       </div>
 
       <div className="selected-destinations" aria-live="polite">
-        <strong>Valitut kohteet ({selectedDestinations.length})</strong>
-        {selectedDestinations.length ? (
+        <strong>{general ? 'Valinta: Yleinen' : `Valitut kohteet (${selectedDestinations.length})`}</strong>
+        {general ? (
+          <p>Suorite koskee yleistä markkinointia.</p>
+        ) : selectedDestinations.length ? (
           <ul>
             {selectedDestinations.map((destination) => (
               <li key={destination.id}>{destination.name}</li>
