@@ -158,6 +158,17 @@ function getCalendarMarkers(date: string) {
   if (date === `${year}-11-11`) markers.push('Singles Day')
   if (date === getBlackFridayDate(year)) markers.push('Black Friday')
 
+  const fairDates: Record<number, Record<string, string[]>> = {
+    2026: {
+      'Matkamessut': ['2026-01-16', '2026-01-17', '2026-01-18'],
+      'Golfmessut': ['2026-03-27', '2026-03-28', '2026-03-29'],
+    },
+  }
+
+  for (const [label, dates] of Object.entries(fairDates[year] || {})) {
+    if (dates.includes(date)) markers.push(label)
+  }
+
   const taxRefundDates: Record<number, string[]> = {
     2026: ['2026-07-03', '2026-08-03', '2026-09-03', '2026-10-05', '2026-11-03', '2026-12-03'],
   }
