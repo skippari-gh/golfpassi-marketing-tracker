@@ -22,23 +22,24 @@ async function updateMarketingPlan(formData: FormData) {
 
   const planId = String(formData.get('plan_id') || '')
   const destinationIds = formData.getAll('destination_id').map(String).filter(Boolean)
+  const generalMarketing = formData.get('general_marketing') === 'true'
   const plannedDate = String(formData.get('planned_date') || '')
   const channels = formData.getAll('channel').map(String).map((value) => value.trim()).filter(Boolean)
   const channel = channels.join(', ')
   const title = String(formData.get('title') || '').trim()
   const notes = String(formData.get('notes') || '').trim()
 
-  if (!planId || destinationIds.length === 0 || !plannedDate || !channel || !title) {
-    throw new Error('Täytä päivämäärä, kanava ja toimenpide sekä valitse vähintään yksi kohde.')
+  if (!planId || !plannedDate || !channel || !title || (destinationIds.length === 0 && !generalMarketing)) {
+    throw new Error('Täytä päivämäärä, kanava ja toimenpide sekä valitse kohde tai Yleinen.')
   }
 
-  const { data: trips, error: tripsError } = await supabase
+  const { data: trips, error: tripsError } = destinationIds.length ? await supabase
     .from('trips')
     .select('id, destination_id, start_date')
     .in('destination_id', destinationIds)
     .eq('status', 'active')
     .gte('end_date', getToday())
-    .order('start_date', { ascending: true })
+    .order('start_date', { ascending: true }) : { data: [], error: null }
 
   if (tripsError) throw new Error(tripsError.message)
 
@@ -54,8 +55,8 @@ async function updateMarketingPlan(formData: FormData) {
     throw new Error('Jollekin valitulle kohteelle ei löytynyt tulevaa lähtöä.')
   }
 
-  const representativeDestinationId = destinationIds[0]
-  const representativeTripId = tripByDestination.get(representativeDestinationId)
+  const representativeDestinationId = destinationIds[0] || null
+  const representativeTripId = representativeDestinationId ? tripByDestination.get(representativeDestinationId) || null : null
 
   const { error: updateError } = await supabase
     .from('marketing_plan')
@@ -79,15 +80,17 @@ async function updateMarketingPlan(formData: FormData) {
 
   if (deleteLinksError) throw new Error(deleteLinksError.message)
 
-  const { error: linkError } = await supabase
-    .from('marketing_plan_destinations')
+  if (destinationIds.length) {
+    const { error: linkError } = await supabase
+      .from('marketing_plan_destinations')
     .insert(destinationIds.map((destinationId) => ({
       marketing_plan_id: planId,
       destination_id: destinationId,
       trip_id: tripByDestination.get(destinationId),
     })))
 
-  if (linkError) throw new Error(linkError.message)
+    if (linkError) throw new Error(linkError.message)
+  }
 
   revalidatePath('/')
   revalidatePath(`/calendar/day/${plannedDate}`)
