@@ -197,7 +197,12 @@ export default async function EditMarketingPlanPage({
         .edit-plan-form legend, .edit-plan-form label > span { display: block; margin-bottom: 7px; color: var(--navy); font-size: 14px; font-weight: 750; }
         .edit-plan-form input, .edit-plan-form select, .edit-plan-form textarea { width: 100%; box-sizing: border-box; border: 1px solid #cbd8e3; border-radius: 10px; padding: 11px 12px; font: inherit; background: #fff; }
         .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        .destination-search { display: flex; gap: 8px; margin-bottom: 10px; }
+        .destination-search input { flex: 1; }
+        .destination-search-clear { flex: 0 0 auto; border: 1px solid #cbd8e3; border-radius: 10px; padding: 0 14px; background: #fff; color: var(--navy); font: inherit; font-weight: 700; cursor: pointer; }
+        .destination-search-clear:hover { border-color: #00aaff; background: #eef8fc; }
         .destination-checkboxes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; max-height: 330px; overflow-y: auto; }
+        .destination-no-results { grid-column: 1 / -1; margin: 8px 2px; color: #687789; }
         .destination-checkbox { display: flex; gap: 10px; padding: 11px 12px; border: 1px solid #dbe5ee; border-radius: 10px; background: #f8fbfd; }
         .destination-checkbox input { width: 17px; height: 17px; margin-top: 2px; }
         .destination-checkbox span { display: grid; gap: 2px; }
