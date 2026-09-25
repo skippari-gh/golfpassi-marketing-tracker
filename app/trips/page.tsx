@@ -182,11 +182,11 @@ export default async function TripsPage({
     })
 
   const categoryOf = (destination: (typeof destinations)[number]) => {
-    const text = destination.trips.map((trip) => `${trip.name} ${trip.trip_type || ''} ${trip.url || ''}`).join(' ').toLocaleLowerCase('fi')
-    if (/long[ -]?stay/.test(text)) return 'longstay'
-    if (/pro[- ]?mat|\bpro\b|kurssimat|valmentaj|opetusmat/.test(text)) {
-      return /opetusmat|kurssimat/.test(text) ? 'opetus' : 'pro'
-    }
+    const categories = new Set(destination.trips.map((trip) => trip.product_category))
+    if (categories.has('klubimatka')) return 'club'
+    if (categories.has('long-stay')) return 'longstay'
+    if (categories.has('opetusmatka')) return 'opetus'
+    if (categories.has('pro-matka')) return 'pro'
     return 'pelimatkat'
   }
 
@@ -195,6 +195,7 @@ export default async function TripsPage({
     { key: 'opetus', title: 'Opetusmatkat' },
     { key: 'pro', title: 'Pro-matkat' },
     { key: 'longstay', title: 'Long Stay -matkat' },
+    { key: 'club', title: 'Klubimatkat' },
   ] as const
 
   const firstSevenDayUrl = (destination: (typeof destinations)[number]) => {
