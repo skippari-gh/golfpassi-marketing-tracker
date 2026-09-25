@@ -7,6 +7,8 @@ export const dynamic = 'force-dynamic'
 type TripsPageProps = {
   searchParams?: Promise<{
     q?: string
+    sort?: string
+    dir?: string
   }>
 }
 
@@ -103,6 +105,9 @@ export default async function TripsPage({
     params?.q?.trim() || ''
   )
 
+  const sortKey = params?.sort || 'next'
+  const sortDirection = params?.dir === 'desc' ? 'desc' : 'asc'
+
   const allTrips =
     await getTripsWithPriority()
 
@@ -135,19 +140,45 @@ export default async function TripsPage({
       )
     })
     .sort((a, b) => {
-      const dateComparison =
-        a.trips[0].start_date.localeCompare(
-          b.trips[0].start_date
-        )
+      const lastMarketed = (destination: typeof a) =>
+        destination.trips
+          .map((trip) => trip.last_marketed_at)
+          .filter((date): date is string => Boolean(date))
+          .sort()
+          .at(-1) || ''
 
-      if (dateComparison !== 0) {
-        return dateComparison
+      const priority = (destination: typeof a) =>
+        Math.max(...destination.trips.map((trip) => trip.priority_score))
+
+      let comparison = 0
+
+      switch (sortKey) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name, 'fi')
+          break
+        case 'country':
+          comparison = a.country.localeCompare(b.country, 'fi')
+          break
+        case 'departures':
+          comparison = a.trips.length - b.trips.length
+          break
+        case 'last':
+          comparison = lastMarketed(a).localeCompare(lastMarketed(b))
+          break
+        case 'priority':
+          comparison = priority(a) - priority(b)
+          break
+        case 'next':
+        default:
+          comparison = a.trips[0].start_date.localeCompare(b.trips[0].start_date)
+          break
       }
 
-      return a.name.localeCompare(
-        b.name,
-        'fi'
-      )
+      if (comparison === 0) {
+        comparison = a.name.localeCompare(b.name, 'fi')
+      }
+
+      return sortDirection === 'desc' ? -comparison : comparison
     })
 
   const departureCount = destinations.reduce(
@@ -155,6 +186,22 @@ export default async function TripsPage({
       count + destination.trips.length,
     0
   )
+
+  const sortHref = (key: string) => {
+    const nextDirection =
+      sortKey === key && sortDirection === 'asc'
+        ? 'desc'
+        : 'asc'
+
+    const query = new URLSearchParams()
+    if (params?.q) query.set('q', params.q)
+    query.set('sort', key)
+    query.set('dir', nextDirection)
+    return `/trips?${query.toString()}`
+  }
+
+  const sortLabel = (label: string, key: string) =>
+    `${label}${sortKey === key ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : ''}`
 
   return (
     <main className="container">
@@ -214,12 +261,12 @@ export default async function TripsPage({
         <table className="trips-table">
           <thead>
             <tr>
-              <th>Kohde</th>
-              <th>Maa</th>
-              <th>Lähdöt</th>
-              <th>Seuraava lähtö</th>
-              <th>Viimeksi</th>
-              <th>Prioriteetti</th>
+              <th><Link href={sortHref('name')}>{sortLabel('Kohde', 'name')}</Link></th>
+              <th><Link href={sortHref('country')}>{sortLabel('Maa', 'country')}</Link></th>
+              <th><Link href={sortHref('departures')}>{sortLabel('Lähdöt', 'departures')}</Link></th>
+              <th><Link href={sortHref('next')}>{sortLabel('Seuraava lähtö', 'next')}</Link></th>
+              <th><Link href={sortHref('last')}>{sortLabel('Viimeksi', 'last')}</Link></th>
+              <th><Link href={sortHref('priority')}>{sortLabel('Prioriteetti', 'priority')}</Link></th>
             </tr>
           </thead>
 
