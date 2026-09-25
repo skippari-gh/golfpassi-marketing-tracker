@@ -9,6 +9,10 @@ type MarketingPlanItemsProps = {
 
 type PlanItem = {
   id: number
+  plannedDate: string
+  channel: string
+  title: string
+  notes: string
 }
 
 export default function MarketingPlanItems({
@@ -17,7 +21,7 @@ export default function MarketingPlanItems({
 }: MarketingPlanItemsProps) {
   const nextId = useRef(2)
   const [items, setItems] = useState<PlanItem[]>([
-    { id: 1 },
+    { id: 1, plannedDate: defaultDate, channel: '', title: '', notes: '' },
   ])
 
   function addItem() {
@@ -26,7 +30,22 @@ export default function MarketingPlanItems({
 
     setItems((currentItems) => [
       ...currentItems,
-      { id },
+      { id, plannedDate: defaultDate, channel: '', title: '', notes: '' },
+    ])
+  }
+
+  function updateItem(id: number, patch: Partial<Omit<PlanItem, 'id'>>) {
+    setItems((currentItems) =>
+      currentItems.map((item) => item.id === id ? { ...item, ...patch } : item)
+    )
+  }
+
+  function duplicateItem(item: PlanItem) {
+    const id = nextId.current
+    nextId.current += 1
+    setItems((currentItems) => [
+      ...currentItems,
+      { ...item, id },
     ])
   }
 
@@ -58,6 +77,16 @@ export default function MarketingPlanItems({
               <div className="plan-item-heading">
                 <h3>Suorite {itemNumber}</h3>
 
+                <div className="plan-item-actions">
+                  <button
+                    className="plan-item-duplicate"
+                    type="button"
+                    onClick={() => duplicateItem(item)}
+                    disabled={items.length >= 20}
+                  >
+                    Duplikoi
+                  </button>
+
                 {items.length > 1 ? (
                   <button
                     className="plan-item-remove"
@@ -68,6 +97,7 @@ export default function MarketingPlanItems({
                     Poista
                   </button>
                 ) : null}
+                </div>
               </div>
 
               <div className="plan-item-grid">
@@ -80,7 +110,8 @@ export default function MarketingPlanItems({
                     id={dateId}
                     name="planned_date"
                     type="date"
-                    defaultValue={defaultDate}
+                    value={item.plannedDate}
+                    onChange={(event) => updateItem(item.id, { plannedDate: event.target.value })}
                     required
                   />
                 </div>
@@ -93,7 +124,8 @@ export default function MarketingPlanItems({
                   <select
                     id={channelId}
                     name="channel"
-                    defaultValue=""
+                    value={item.channel}
+                    onChange={(event) => updateItem(item.id, { channel: event.target.value })}
                     required
                   >
                     <option value="">Valitse kanava</option>
@@ -117,6 +149,8 @@ export default function MarketingPlanItems({
                   name="title"
                   type="text"
                   placeholder="Esimerkiksi uutiskirjenosto tai Facebook-postaus"
+                  value={item.title}
+                  onChange={(event) => updateItem(item.id, { title: event.target.value })}
                   required
                 />
               </div>
@@ -129,6 +163,8 @@ export default function MarketingPlanItems({
                   name="notes"
                   rows={3}
                   placeholder="Sisältöidea, aineistot tai muut huomiot"
+                  value={item.notes}
+                  onChange={(event) => updateItem(item.id, { notes: event.target.value })}
                 />
               </div>
             </section>
