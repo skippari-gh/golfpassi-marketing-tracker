@@ -210,8 +210,11 @@ export default async function EditMarketingPlanPage({
       <main className="container edit-plan-container">
         <nav className="nav">
           <Link href={`/calendar/day/${plan.planned_date}`}>← Päivänäkymään</Link>
-          <Link href="/">Etusivu</Link>
         </nav>
+
+        <div style={{ marginBottom: '14px' }}>
+          <Link href="/" className="back-home-link">← Etusivulle</Link>
+        </div>
 
         <section className="card edit-plan-card">
           <h2>Muokkaa suoritetta</h2>
