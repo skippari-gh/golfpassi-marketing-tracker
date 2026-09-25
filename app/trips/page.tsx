@@ -181,6 +181,31 @@ export default async function TripsPage({
       return sortDirection === 'desc' ? -comparison : comparison
     })
 
+  const categoryOf = (destination: (typeof destinations)[number]) => {
+    const text = destination.trips.map((trip) => `${trip.name} ${trip.trip_type || ''} ${trip.url || ''}`).join(' ').toLocaleLowerCase('fi')
+    if (/long[ -]?stay/.test(text)) return 'longstay'
+    if (/pro[- ]?mat|\bpro\b|kurssimat|valmentaj|opetusmat/.test(text)) {
+      return /opetusmat|kurssimat/.test(text) ? 'opetus' : 'pro'
+    }
+    return 'pelimatkat'
+  }
+
+  const sections = [
+    { key: 'pelimatkat', title: 'Pelimatkat' },
+    { key: 'opetus', title: 'Opetusmatkat' },
+    { key: 'pro', title: 'Pro-matkat' },
+    { key: 'longstay', title: 'Long Stay -matkat' },
+  ] as const
+
+  const firstSevenDayUrl = (destination: (typeof destinations)[number]) => {
+    const sevenDay = destination.trips.find((trip) => {
+      const start = new Date(`${trip.start_date}T00:00:00`)
+      const end = new Date(`${trip.end_date}T00:00:00`)
+      return Math.round((end.getTime() - start.getTime()) / 86400000) === 7 && Boolean(trip.url)
+    })
+    return sevenDay?.url || destination.trips.find((trip) => trip.url)?.url || null
+  }
+
   const departureCount = destinations.reduce(
     (count, destination) =>
       count + destination.trips.length,
@@ -271,7 +296,14 @@ export default async function TripsPage({
           </thead>
 
           <tbody>
-            {destinations.map((destination) => {
+            {sections.map((section) => {
+              const sectionDestinations = destinations.filter((destination) => categoryOf(destination) === section.key)
+              if (sectionDestinations.length === 0) return null
+              return [
+                <tr className="trip-section-row" key={`${section.key}-heading`}>
+                  <td colSpan={6}><strong>{section.title}</strong></td>
+                </tr>,
+                ...sectionDestinations.map((destination) => {
             const nextTrip = destination.trips[0]
 
             const lastMarketedAt =
@@ -305,6 +337,18 @@ export default async function TripsPage({
                           ›
                         </span>
                         {destination.name}
+                        {firstSevenDayUrl(destination) && (
+                          <a
+                            className="trip-site-link"
+                            href={firstSevenDayUrl(destination) || undefined}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Avaa ensimmäinen 7 vrk matka Golfpassin sivulla"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            ↗
+                          </a>
+                        )}
                       </span>
 
                       <span>{destination.country}</span>
@@ -386,6 +430,8 @@ export default async function TripsPage({
                 </td>
               </tr>
             )
+                })
+              ]
             })}
 
             {destinations.length === 0 && (
