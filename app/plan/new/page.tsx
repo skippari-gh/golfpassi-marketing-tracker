@@ -56,24 +56,6 @@ async function createMarketingPlan(
 
   const generalMarketing = formData.get('general_marketing') === 'true'
 
-  const createdBy = String(
-    formData.get(
-      'created_by'
-    ) || ''
-  ).trim()
-
-  if (destinationIds.length === 0 && !generalMarketing) {
-    throw new Error(
-      'Valitse vähintään yksi kohde tai Yleinen.'
-    )
-  }
-
-  if (!createdBy) {
-    throw new Error(
-      'Kirjoita suunnittelijan nimi.'
-    )
-  }
-
   const planItems = getMarketingPlanItems(formData)
 
   const { data: representativeTrips, error: tripError } = destinationIds.length
@@ -119,7 +101,6 @@ async function createMarketingPlan(
         trip_id: representativeTripId,
         ...item,
         status: 'planned',
-        created_by: createdBy,
       })
       .select('id')
       .single()
@@ -473,22 +454,7 @@ export default async function NewPlanPage({
               defaultDate={requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : getToday()}
             />
 
-            <div className="plan-field">
-              <label htmlFor="created_by">
-                Suunnittelija{' '}
-                <span className="required-mark">
-                  *
-                </span>
-              </label>
 
-              <input
-                id="created_by"
-                name="created_by"
-                type="text"
-                placeholder="Oma nimi"
-                required
-              />
-            </div>
 
             <div className="plan-actions">
               <button
