@@ -1307,10 +1307,6 @@ function getCountryFromUrl(
 function isSaveAllowed(
   request: Request
 ) {
-  // One-time bootstrap authorization for the initial price backfill.
-  // Removed immediately after the backfill has completed.
-  const bootstrap = new URL(request.url).searchParams.get('bootstrap')
-  if (bootstrap === 'gp-price-backfill-20260928-0755') return true
   if (
     process.env.NODE_ENV !==
     'production'
