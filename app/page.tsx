@@ -290,7 +290,6 @@ function MonthCalendar({
     channel: string
     title: string
     tripId: string | null
-    overdue: boolean
   }>>()
 
   const addEvent = (
@@ -312,7 +311,6 @@ function MonthCalendar({
         channel: performance.channel,
         title: performance.title,
         tripId: item.trip_id,
-        overdue: performance.date < today,
       })
     }
   }
@@ -326,7 +324,6 @@ function MonthCalendar({
       channel: item.channel,
       title: item.title,
       tripId: item.trip_id,
-      overdue: false,
     })
   }
 
@@ -366,10 +363,10 @@ function MonthCalendar({
                 ))}
                 {events.map((event) => (
                   <article
-                    className={`month-calendar-event ${event.kind}${event.overdue ? ' overdue' : ''}`}
+                    className={`month-calendar-event ${event.kind}`}
                     key={`${event.kind}-${event.id}`}
                   >
-                    <span>{event.kind === 'done' ? 'Tehty' : event.overdue ? 'Myöhässä' : event.channel}</span>
+                    <span>{event.kind === 'done' ? 'Tehty' : event.channel}</span>
                     {event.kind === 'planned' ? (
                       <Link href={`/plan/${event.id.replace('plan-', '')}/edit`}>{event.title}</Link>
                     ) : event.tripId ? (
@@ -432,32 +429,16 @@ function CalendarRow({
   item: MarketingCalendarItem
   today: string
 }) {
-  const overdue =
-    item.kind === 'planned' &&
-    item.performances.some(
-      (performance) => performance.date < today
-    )
-
   const statusLabel =
-    item.kind === 'done'
-      ? 'Tehty'
-      : overdue
-        ? 'Myöhässä'
-        : 'Tulossa'
+    item.kind === 'done' ? 'Tehty' : 'Tulossa'
 
   const statusClass =
     item.kind === 'done'
       ? 'calendar-status done'
-      : overdue
-        ? 'calendar-status overdue'
-        : 'calendar-status upcoming'
+      : 'calendar-status upcoming'
 
   return (
-    <article
-      className={`calendar-row ${
-        overdue ? 'calendar-row-overdue' : ''
-      }`}
-    >
+    <article className="calendar-row">
       <div className="calendar-date">
         {formatDate(item.date)}
       </div>
@@ -508,11 +489,6 @@ function CalendarRow({
                 <div className="calendar-performance-top">
                   <strong>{performance.channel}</strong>
                   <span>{formatDate(performance.date)}</span>
-                  {performance.date < today ? (
-                    <span className="calendar-performance-overdue">
-                      Myöhässä
-                    </span>
-                  ) : null}
                 </div>
 
                 <p className="calendar-action">
