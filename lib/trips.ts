@@ -9,6 +9,7 @@ export type TripWithPriority = {
   trip_type: string
   product_category?: string | null
   source_system?: string | null
+  price_from?: number | null
   start_date: string
   end_date: string
   status: string
