@@ -1317,7 +1317,12 @@ function isSaveAllowed(
   const expectedSecret =
     process.env.SYNC_SECRET
 
-  if (!expectedSecret) {
+  // Vercel Cron can authenticate scheduled production runs with
+  // its own CRON_SECRET even when a separate SYNC_SECRET is not set.
+  const cronSecret =
+    process.env.CRON_SECRET
+
+  if (!expectedSecret && !cronSecret) {
     return false
   }
 
@@ -1332,10 +1337,15 @@ function isSaveAllowed(
       .get('secret')
 
   return (
-    authorization ===
-      `Bearer ${expectedSecret}` ||
-    querySecret ===
-      expectedSecret
+    (expectedSecret &&
+      authorization ===
+        `Bearer ${expectedSecret}`) ||
+    (cronSecret &&
+      authorization ===
+        `Bearer ${cronSecret}`) ||
+    (expectedSecret &&
+      querySecret ===
+        expectedSecret)
   )
 }
 
