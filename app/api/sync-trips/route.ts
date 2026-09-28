@@ -45,6 +45,7 @@ type ScrapedTrip = {
   source_type: SourceType
   source_key: string
   name_source: NameSource
+  price_from?: number | null
 }
 
 type DuplicateTrip = {
@@ -1006,6 +1007,47 @@ async function scrapeSource(
   })
 }
 
+async function fetchStartingPrices(
+  trips: ScrapedTrip[]
+) {
+  const pricesByUrl = new Map<string, number | null>()
+  const urls = Array.from(new Set(trips.map((trip) => trip.url)))
+  const concurrency = 8
+
+  for (let index = 0; index < urls.length; index += concurrency) {
+    const batch = urls.slice(index, index + concurrency)
+    const results = await Promise.all(
+      batch.map(async (url) => {
+        try {
+          const response = await fetch(url, {
+            cache: 'no-store',
+            headers: {
+              'User-Agent': 'Golfpassi-Marketing-Tracker/1.0',
+              Accept: 'text/html,application/xhtml+xml',
+            },
+          })
+          if (!response.ok) return [url, null] as const
+          const html = await response.text()
+          const $ = cheerio.load(html)
+          const text = $('body').text().replace(/\s+/g, ' ')
+          const match = text.match(/HINTA\s*(?:alk\.?\s*)?(\d[\d\s.]*)\s*€/i)
+          if (!match) return [url, null] as const
+          const value = Number(match[1].replace(/[\s.]/g, ''))
+          return [url, Number.isFinite(value) ? value : null] as const
+        } catch {
+          return [url, null] as const
+        }
+      })
+    )
+    for (const [url, price] of results) pricesByUrl.set(url, price)
+  }
+
+  return trips.map((trip) => ({
+    ...trip,
+    price_from: pricesByUrl.get(trip.url) ?? null,
+  }))
+}
+
 function getDuplicateKey(
   trip: ScrapedTrip
 ) {
@@ -1685,6 +1727,9 @@ async function saveTripsToSupabase(
 
         is_missing_from_source:
           false,
+
+        price_from:
+          trip.price_from ?? null,
       }))
 
     const {
@@ -1970,9 +2015,14 @@ export async function GET(
       )
     }
 
+    const tripsWithPrices =
+      await fetchStartingPrices(
+        uniqueTrips
+      )
+
     const saveResult =
       await saveTripsToSupabase(
-        uniqueTrips
+        tripsWithPrices
       )
 
     await finishSyncRun(
