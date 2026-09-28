@@ -715,17 +715,6 @@ export default async function Home({
       b.date.localeCompare(a.date)
     )
 
-  const overdueCount = plannedItems.filter(
-    (item) => item.kind === 'planned'
-  ).reduce(
-    (count, item) =>
-      count +
-      item.performances.filter(
-        (performance) => performance.date < today
-      ).length,
-    0
-  )
-
   const plannedPerformanceCount = plannedItems.reduce(
     (count, item) =>
       count +
@@ -2178,12 +2167,6 @@ export default async function Home({
                 <span className="summary-pill done">
                   Tehty {completedItems.length}
                 </span>
-
-                {overdueCount > 0 && (
-                  <span className="summary-pill alert">
-                    Myöhässä {overdueCount}
-                  </span>
-                )}
               </div>
 
               {selectedLayout === 'month' ? (
