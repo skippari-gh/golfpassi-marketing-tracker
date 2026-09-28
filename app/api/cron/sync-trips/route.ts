@@ -11,12 +11,12 @@ export async function GET(
   const syncSecret =
     process.env.SYNC_SECRET
 
-  if (!cronSecret || !syncSecret) {
+  if (!cronSecret) {
     return Response.json(
       {
         success: false,
         error:
-          'CRON_SECRET tai SYNC_SECRET puuttuu Vercelin ympäristömuuttujista.',
+          'CRON_SECRET puuttuu Vercelin ympäristömuuttujista.',
       },
       {
         status: 500,
@@ -62,7 +62,7 @@ export async function GET(
       cache: 'no-store',
       headers: {
         authorization:
-          `Bearer ${syncSecret}`,
+          `Bearer ${syncSecret || cronSecret}`,
       },
     }
   )
