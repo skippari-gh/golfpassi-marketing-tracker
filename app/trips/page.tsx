@@ -291,6 +291,7 @@ export default async function TripsPage({
               <th><Link href={sortHref('country')}>{sortLabel('Maa', 'country')}</Link></th>
               <th><Link href={sortHref('departures')}>{sortLabel('Lähdöt', 'departures')}</Link></th>
               <th><Link href={sortHref('next')}>{sortLabel('Seuraava lähtö', 'next')}</Link></th>
+              <th>Alkaen-hinta</th>
               <th><Link href={sortHref('last')}>{sortLabel('Viimeksi', 'last')}</Link></th>
               <th><Link href={sortHref('priority')}>{sortLabel('Prioriteetti', 'priority')}</Link></th>
             </tr>
@@ -302,7 +303,7 @@ export default async function TripsPage({
               if (sectionDestinations.length === 0) return null
               return [
                 <tr className="trip-section-row" key={`${section.key}-heading`}>
-                  <td colSpan={6}><strong>{section.title}</strong></td>
+                  <td colSpan={7}><strong>{section.title}</strong></td>
                 </tr>,
                 ...sectionDestinations.map((destination) => {
             const nextTrip = destination.trips[0]
@@ -326,7 +327,7 @@ export default async function TripsPage({
               <tr key={destination.key}>
                 <td
                   className="trip-destination-cell"
-                  colSpan={6}
+                  colSpan={7}
                 >
                   <details className="trip-destination-details">
                     <summary className="trip-destination-summary">
@@ -365,6 +366,12 @@ export default async function TripsPage({
                           nextTrip.start_date,
                           nextTrip.end_date
                         )}
+                      </span>
+
+                      <span className="trip-price">
+                        {nextTrip.price_from != null
+                          ? `${nextTrip.price_from.toLocaleString('fi-FI')} €`
+                          : '—'}
                       </span>
 
                       <span className="trip-date">
@@ -416,6 +423,12 @@ export default async function TripsPage({
                             )}
                           </span>
 
+                          <span className="trip-price">
+                            {departure.price_from != null
+                              ? `${departure.price_from.toLocaleString('fi-FI')} €`
+                              : '—'}
+                          </span>
+
                           <span className="trip-date">
                             {formatDate(
                               departure.last_marketed_at
@@ -436,7 +449,7 @@ export default async function TripsPage({
 
             {destinations.length === 0 && (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   Hakua vastaavia matkoja ei löytynyt.
                 </td>
               </tr>
