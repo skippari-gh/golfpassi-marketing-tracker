@@ -1012,32 +1012,60 @@ async function fetchStartingPrices(
 ) {
   const pricesByUrl = new Map<string, number | null>()
   const urls = Array.from(new Set(trips.map((trip) => trip.url)))
-  const concurrency = 8
+  const concurrency = 4
+
+  const fetchPrice = async (url: string) => {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const response = await fetch(url, {
+          cache: 'no-store',
+          headers: {
+            'User-Agent': 'Golfpassi-Marketing-Tracker/1.0',
+            Accept: 'text/html,application/xhtml+xml',
+          },
+        })
+
+        if (!response.ok) {
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)))
+            continue
+          }
+          return null
+        }
+
+        const html = await response.text()
+        const $ = cheerio.load(html)
+        const bodyText = normalizeText($('body').text())
+        const patterns = [
+          /HINTA\s*alk\.?\s*([0-9][0-9\s\u00a0.]*)\s*€/i,
+          /HINTA\s*([0-9][0-9\s\u00a0.]*)\s*€/i,
+          /Hinta\s*([0-9][0-9\s\u00a0.]*)\s*€/i,
+        ]
+
+        for (const pattern of patterns) {
+          const match = bodyText.match(pattern)
+          if (!match) continue
+          const value = Number(match[1].replace(/[\s\u00a0.]/g, ''))
+          if (Number.isFinite(value) && value > 0) return value
+        }
+
+        return null
+      } catch {
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)))
+          continue
+        }
+        return null
+      }
+    }
+
+    return null
+  }
 
   for (let index = 0; index < urls.length; index += concurrency) {
     const batch = urls.slice(index, index + concurrency)
     const results = await Promise.all(
-      batch.map(async (url) => {
-        try {
-          const response = await fetch(url, {
-            cache: 'no-store',
-            headers: {
-              'User-Agent': 'Golfpassi-Marketing-Tracker/1.0',
-              Accept: 'text/html,application/xhtml+xml',
-            },
-          })
-          if (!response.ok) return [url, null] as const
-          const html = await response.text()
-          const $ = cheerio.load(html)
-          const text = $('body').text().replace(/\s+/g, ' ')
-          const match = text.match(/HINTA\s*(?:alk\.?\s*)?(\d[\d\s.]*)\s*€/i)
-          if (!match) return [url, null] as const
-          const value = Number(match[1].replace(/[\s.]/g, ''))
-          return [url, Number.isFinite(value) ? value : null] as const
-        } catch {
-          return [url, null] as const
-        }
-      })
+      batch.map(async (url) => [url, await fetchPrice(url)] as const)
     )
     for (const [url, price] of results) pricesByUrl.set(url, price)
   }
