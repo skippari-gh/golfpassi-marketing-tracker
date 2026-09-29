@@ -1342,12 +1342,6 @@ function isSaveAllowed(
     return true
   }
 
-  // One-off maintenance: allow a save request carrying the maintenance key.
-  // Remove this bypass after the backfill has completed.
-  if (new URL(request.url).searchParams.get('maintenance') === 'price-backfill-20260929') {
-    return true
-  }
-
   const expectedSecret =
     process.env.SYNC_SECRET
 
