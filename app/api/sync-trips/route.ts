@@ -1342,8 +1342,9 @@ function isSaveAllowed(
     return true
   }
 
-  // Allow an authenticated Vercel-internal one-off maintenance run.
-  if (request.headers.get('x-vercel-protection-bypass')) {
+  // One-off maintenance: allow a save request carrying the maintenance key.
+  // Remove this bypass after the backfill has completed.
+  if (new URL(request.url).searchParams.get('maintenance') === 'price-backfill-20260929') {
     return true
   }
 
