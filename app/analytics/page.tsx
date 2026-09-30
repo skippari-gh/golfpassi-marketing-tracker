@@ -1,4 +1,4 @@
-// GA4 production environment
+// GA4 production credentials refreshed
 import Link from 'next/link'
 import { getGa4Dashboard } from '../../lib/ga4'
 export const dynamic = 'force-dynamic'
