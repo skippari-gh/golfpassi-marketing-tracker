@@ -697,3 +697,12 @@ label { font-weight:700; }
     align-self: flex-start;
   }
 }
+
+.bulletin-form { display:grid; gap:10px; margin-bottom:18px; }
+.bulletin-form button { justify-self:start; }
+.bulletin-list { display:grid; gap:10px; }
+.bulletin-message { padding:14px 16px; border:1px solid #dbe4ee; border-radius:14px; background:#f8fbfd; }
+.bulletin-message-heading { display:flex; justify-content:space-between; gap:16px; align-items:center; }
+.bulletin-message-heading strong { color:var(--navy); }
+.bulletin-message-heading time { color:#607080; font-size:12px; white-space:nowrap; }
+.bulletin-message p { margin:8px 0 0; white-space:pre-wrap; line-height:1.5; }
