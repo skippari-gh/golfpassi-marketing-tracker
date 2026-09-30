@@ -2005,6 +2005,10 @@ export default async function Home({
                 Matkat
               </Link>
 
+              <Link href="/analytics">
+                Analytiikka
+              </Link>
+
               <Link href="/sync-status">
                 Synkronointi
               </Link>
