@@ -4,7 +4,15 @@ import { getTripsWithPriority } from '../../../lib/trips'
 
 export const dynamic = 'force-dynamic'
 
-export default async function NewRequestPage() {
+export default async function NewRequestPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ trip?: string | string[] }>
+}) {
+  const params = await searchParams
+  const tripParam = params?.trip
+  const selectedTripId = Array.isArray(tripParam) ? tripParam[0] : tripParam || ''
+
   const allTrips = await getTripsWithPriority()
   const destinations = groupTripsByDestination(
     allTrips.filter(
@@ -35,7 +43,7 @@ export default async function NewRequestPage() {
         >
           <label>
             Kohde
-            <select name="trip_id" defaultValue="" required>
+            <select name="trip_id" defaultValue={selectedTripId} required>
               <option value="" disabled>Valitse kohde</option>
               {destinations.map((destination) => (
                 <option
