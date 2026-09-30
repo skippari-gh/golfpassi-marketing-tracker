@@ -308,6 +308,15 @@ export default async function TripsPage({
                 ...sectionDestinations.map((destination) => {
             const nextTrip = destination.trips[0]
 
+            const cheapestPrice = destination.trips
+              .map((trip) => trip.price_from)
+              .filter((price): price is number => price != null)
+              .reduce<number | null>(
+                (lowest, price) =>
+                  lowest == null || price < lowest ? price : lowest,
+                null
+              )
+
             const lastMarketedAt =
               destination.trips
                 .map((trip) => trip.last_marketed_at)
@@ -369,8 +378,8 @@ export default async function TripsPage({
                       </span>
 
                       <span className="trip-price">
-                        {nextTrip.price_from != null
-                          ? `${nextTrip.price_from.toLocaleString('fi-FI')} €`
+                        {cheapestPrice != null
+                          ? `${cheapestPrice.toLocaleString('fi-FI')} €`
                           : '—'}
                       </span>
 
