@@ -618,6 +618,25 @@ async function archiveMarketingRequest(
   revalidatePath('/archive')
 }
 
+async function addBulletinMessage(formData: FormData) {
+  'use server'
+
+  const authorName = String(formData.get('author_name') || '').trim()
+  const message = String(formData.get('message') || '').trim()
+
+  if (!authorName || !message) {
+    throw new Error('Kirjoita nimi ja viesti.')
+  }
+
+  const { error } = await supabase.from('bulletin_messages').insert({
+    author_name: authorName.slice(0, 80),
+    message: message.slice(0, 1000),
+  })
+
+  if (error) throw new Error(error.message)
+  revalidatePath('/')
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -655,11 +674,19 @@ export default async function Home({
     allTrips,
     marketingRequests,
     calendarItems,
+    bulletinResult,
   ] = await Promise.all([
     getTripsWithPriority(),
     getMarketingRequests(),
     getMarketingCalendar(),
+    supabase
+      .from('bulletin_messages')
+      .select('id, author_name, message, created_at')
+      .order('created_at', { ascending: false })
+      .limit(20),
   ])
+
+  const bulletinMessages = bulletinResult.data || []
 
   const today = getToday()
 
@@ -2251,261 +2278,51 @@ export default async function Home({
 
           <section className="panel">
             <div className="panel-inner">
-              <div className="panel-heading priority-panel-heading">
+              <div className="panel-heading">
                 <div>
-                  <span className="panel-overline">
-                    Seuraavat nostot
-                  </span>
-
-                  <h2>
-                    Pisteytetyt matkat
-                  </h2>
-
-                  <p>
-                    Markkinointia eniten
-                    tarvitsevat matkat.
-                  </p>
+                  <span className="panel-overline">Yhteinen tila</span>
+                  <h2>Ilmoitustaulu</h2>
+                  <p>Jätä viesti kaikille Marketing Trackerin käyttäjille.</p>
                 </div>
-
-                <details className="priority-info">
-                  <summary
-                    className="priority-info-button"
-                    aria-label="Näytä pisteytyksen perusteet"
-                    title="Miten pisteet lasketaan?"
-                  >
-                    i
-                  </summary>
-
-                  <div className="priority-info-popover">
-                    <h3>
-                      Miten pisteet lasketaan?
-                    </h3>
-
-                    <p className="priority-info-intro">
-                      Lista näyttää 10 aktiivista tulevaa
-                      kohdetta. Kohteen sijoitus määräytyy
-                      sen eniten markkinointia tarvitsevan
-                      lähdön pistemäärän perusteella.
-                      Mitä suurempi pistemäärä on, sitä
-                      enemmän lähtö tarvitsee markkinointia.
-                    </p>
-
-                    <ul className="priority-info-list">
-                      <li>
-                        <span>
-                          Matkaa ei ole markkinoitu koskaan
-                        </span>
-                        <span className="priority-info-points">
-                          +60
-                        </span>
-                      </li>
-
-                      <li>
-                        <span>
-                          Edellisestä nostosta vähintään
-                          30 päivää
-                        </span>
-                        <span className="priority-info-points">
-                          +50
-                        </span>
-                      </li>
-
-                      <li>
-                        <span>
-                          Edellisestä nostosta 21–29 päivää
-                        </span>
-                        <span className="priority-info-points">
-                          +35
-                        </span>
-                      </li>
-
-                      <li>
-                        <span>
-                          Edellisestä nostosta 14–20 päivää
-                        </span>
-                        <span className="priority-info-points">
-                          +20
-                        </span>
-                      </li>
-
-                      <li>
-                        <span>
-                          Lähtöön 0–30 päivää
-                        </span>
-                        <span className="priority-info-points">
-                          +50
-                        </span>
-                      </li>
-
-                      <li>
-                        <span>
-                          Lähtöön 31–60 päivää
-                        </span>
-                        <span className="priority-info-points">
-                          +35
-                        </span>
-                      </li>
-
-                      <li>
-                        <span>
-                          Lähtöön 61–90 päivää
-                        </span>
-                        <span className="priority-info-points">
-                          +25
-                        </span>
-                      </li>
-
-                      <li>
-                        <span>
-                          Matkaa ei ole ollut uutiskirjeessä
-                        </span>
-                        <span className="priority-info-points">
-                          +25
-                        </span>
-                      </li>
-
-                      <li>
-                        <span>
-                          Matkaa ei ole ollut somessa
-                        </span>
-                        <span className="priority-info-points">
-                          +20
-                        </span>
-                      </li>
-
-                      <li>
-                        <span>
-                          Matkaa on markkinoitu viimeisen
-                          7 päivän aikana
-                        </span>
-                        <span className="priority-info-points">
-                          −50
-                        </span>
-                      </li>
-                    </ul>
-
-                    <p className="priority-info-note">
-                      Jo alkanut matka saa −1000 pistettä ja
-                      passiivinen matka −500 pistettä. Ne eivät
-                      näy tässä listassa, koska lista sisältää
-                      vain aktiiviset tulevat matkat.
-                    </p>
-                  </div>
-                </details>
               </div>
 
-              {priorityDestinations.length === 0 ? (
-                <p className="empty-message">
-                  Aktiivisia tulevia matkoja
-                  ei löytynyt.
-                </p>
+              <form className="bulletin-form" action={addBulletinMessage}>
+                <input
+                  type="text"
+                  name="author_name"
+                  placeholder="Nimesi"
+                  maxLength={80}
+                  required
+                />
+                <textarea
+                  name="message"
+                  placeholder="Kirjoita viesti ilmoitustaululle…"
+                  rows={3}
+                  maxLength={1000}
+                  required
+                />
+                <button className="button" type="submit">Jätä viesti</button>
+              </form>
+
+              {bulletinMessages.length === 0 ? (
+                <p className="empty-message">Ilmoitustaululla ei ole vielä viestejä.</p>
               ) : (
-                <div className="compact-list">
-                  {priorityDestinations.map(
-                    (destination, index) => {
-                      const {
-                        nextTrip,
-                        priorityTrip,
-                      } = destination
-
-                      return (
-                        <article
-                          className="compact-card"
-                          key={destination.key}
-                        >
-                          <span className="score">
-                            #{index + 1} ·{' '}
-                            {priorityTrip.priority_score}{' '}
-                            pistettä
-                          </span>
-
-                          <h3>
-                            {destination.name}
-                          </h3>
-
-                          <p className="meta">
-                            {destination.country} ·{' '}
-                            {destination.trips.length}{' '}
-                            {destination.trips.length === 1
-                              ? 'lähtö'
-                              : 'lähtöä'}
-                          </p>
-
-                          <p className="meta">
-                            Seuraava lähtö:{' '}
-                            <strong>
-                              {nextTrip.days_to_start === 0
-                                ? 'tänään'
-                                : nextTrip.days_to_start === 1
-                                  ? 'huomenna'
-                                  : `${nextTrip.days_to_start} päivän päästä`}
-                            </strong>
-                            <br />
-                            <span className="next-departure-date">
-                              {formatDate(nextTrip.start_date)}
-                            </span>
-                          </p>
-
-                          <p className="meta">
-                            Markkinoitava lähtö:{' '}
-                            <strong>
-                              {formatDate(
-                                priorityTrip.start_date
-                              )}
-                            </strong>
-                          </p>
-
-                          <p className="meta">
-                            Viimeksi markkinoitu:{' '}
-                            <strong>
-                              {priorityTrip.last_marketed_at ||
-                                'ei koskaan'}
-                            </strong>
-                          </p>
-
-                          <p className="priority-summary">
-                            {compactPriorityReason(
-                              priorityTrip
-                            )}
-                          </p>
-
-                          <div className="actions">
-                            <Link
-                              className="button"
-                              href={`/trips/${priorityTrip.id}`}
-                            >
-                              Avaa lähdöt
-                            </Link>
-
-                            <Link
-                              className="button secondary"
-                              href={`/plan/new?trip=${priorityTrip.id}`}
-                            >
-                              Suunnittele
-                            </Link>
-
-                            <Link
-                              className="button secondary"
-                              href={`/actions/new?trip=${priorityTrip.id}`}
-                            >
-                              Merkitse tehdyksi
-                            </Link>
-                          </div>
-                        </article>
-                      )
-                    }
-                  )}
+                <div className="bulletin-list">
+                  {bulletinMessages.map((message: any) => (
+                    <article className="bulletin-message" key={message.id}>
+                      <div className="bulletin-message-heading">
+                        <strong>{message.author_name}</strong>
+                        <time>{new Intl.DateTimeFormat('fi-FI', {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                          timeZone: 'Europe/Helsinki',
+                        }).format(new Date(message.created_at))}</time>
+                      </div>
+                      <p>{message.message}</p>
+                    </article>
+                  ))}
                 </div>
               )}
-
-              <div className="panel-footer">
-                <Link
-                  className="button secondary"
-                  href="/trips"
-                >
-                  Kaikki matkat
-                </Link>
-              </div>
             </div>
           </section>
 
