@@ -166,10 +166,13 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
   return (
     <main className="container">
       <nav className="nav">
-        <Link href="/">Nosta seuraavaksi</Link>
+        <Link href="/">← Etusivulle</Link>
         <Link href="/trips">Matkat</Link>
         {representativeTrip && (
-          <Link href={`/actions/new?trip=${representativeTrip.id}`}>Lisää merkintä</Link>
+          <>
+            <Link href={`/requests/new?trip=${representativeTrip.id}`}>Pyydä markkinointia</Link>
+            <Link href={`/actions/new?trip=${representativeTrip.id}`}>Lisää merkintä</Link>
+          </>
         )}
       </nav>
 
