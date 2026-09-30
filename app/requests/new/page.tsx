@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { groupTripsByDestination } from '../../../lib/trip-destinations'
 import { getTripsWithPriority } from '../../../lib/trips'
 
 export const dynamic = 'force-dynamic'
@@ -14,11 +13,12 @@ export default async function NewRequestPage({
   const selectedTripId = Array.isArray(tripParam) ? tripParam[0] : tripParam || ''
 
   const allTrips = await getTripsWithPriority()
-  const destinations = groupTripsByDestination(
-    allTrips.filter(
-      (trip) => trip.status === 'active' && trip.days_to_start >= 0
-    )
-  ).sort((a, b) => a.name.localeCompare(b.name, 'fi'))
+  const activeTrips = allTrips
+    .filter((trip) => trip.status === 'active' && trip.days_to_start >= 0)
+    .sort((a, b) => {
+      const nameComparison = a.name.localeCompare(b.name, 'fi')
+      return nameComparison !== 0 ? nameComparison : a.start_date.localeCompare(b.start_date)
+    })
 
   return (
     <main className="container request-page">
@@ -45,12 +45,9 @@ export default async function NewRequestPage({
             Kohde
             <select name="trip_id" defaultValue={selectedTripId} required>
               <option value="" disabled>Valitse kohde</option>
-              {destinations.map((destination) => (
-                <option
-                  key={destination.key}
-                  value={destination.trips[0]?.id || ''}
-                >
-                  {destination.name} · {destination.country}
+              {activeTrips.map((trip) => (
+                <option key={trip.id} value={trip.id}>
+                  {trip.name} · {trip.country} · {trip.start_date}
                 </option>
               ))}
             </select>
