@@ -264,11 +264,16 @@ export default async function DestinationPage({ params }: { params: Promise<{ id
                 <strong>{formatDateRange(departure.start_date, departure.end_date)}</strong>
                 <p className="meta">{departure.name}</p>
               </div>
-              {departure.url && (
-                <a className="button secondary" href={departure.url} rel="noreferrer" target="_blank">
-                  Avaa matka
-                </a>
-              )}
+              <div className="departure-row-actions">
+                <Link className="button" href={`/requests/new?trip=${departure.id}`}>
+                  Pyydä markkinointia
+                </Link>
+                {departure.url && (
+                  <a className="button secondary" href={departure.url} rel="noreferrer" target="_blank">
+                    Avaa matka
+                  </a>
+                )}
+              </div>
             </article>
           ))}
         </div>
