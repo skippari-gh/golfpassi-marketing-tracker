@@ -23,8 +23,16 @@ export async function getMetaAdAccounts(): Promise<MetaAccount[]> {
 const GOLFPASSI_AD_ACCOUNT = process.env.META_AD_ACCOUNT_ID || 'act_96351542'
 
 export async function getMetaDashboard(days = 30) {
-  const since = new Date(Date.now() - (days - 1) * 86400000).toISOString().slice(0,10)
-  const until = new Date().toISOString().slice(0,10)
+  // Meta ad account uses Europe/Helsinki. Build the reporting dates in that timezone
+  // instead of UTC so the requested range matches Ads Manager.
+  const helsinkiDate = (offsetDays = 0) => {
+    const d = new Date(Date.now() + offsetDays * 86400000)
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Helsinki', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(d)
+  }
+  const since = helsinkiDate(-(days - 1))
+  const until = helsinkiDate(0)
   const fields = 'campaign_name,spend,impressions,reach,clicks,ctr,cpc,cpm,actions'
   const accountFields = 'spend,impressions,reach,clicks,ctr,cpc,cpm,actions'
   const [total, campaigns] = await Promise.all([
