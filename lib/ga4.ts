@@ -43,7 +43,15 @@ async function accessToken() {
     body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth2:grant-type:jwt-bearer', assertion: jwt }),
     cache: 'no-store',
   })
-  if (!response.ok) throw new Error('Google authentication failed')
+  if (!response.ok) {
+    const body = await response.text()
+    let detail = body
+    try {
+      const parsed = JSON.parse(body)
+      detail = parsed?.error_description || parsed?.error || body
+    } catch {}
+    throw new Error(`Google authentication failed (${response.status}): ${String(detail).slice(0, 500)}`)
+  }
   return (await response.json()).access_token as string
 }
 
@@ -63,7 +71,15 @@ async function report(dimensions: string[], metrics: string[], days: number, lim
     }),
     cache: 'no-store',
   })
-  if (!response.ok) throw new Error(`GA4 report failed: ${response.status}`)
+  if (!response.ok) {
+    const body = await response.text()
+    let detail = body
+    try {
+      const parsed = JSON.parse(body)
+      detail = parsed?.error?.message || body
+    } catch {}
+    throw new Error(`GA4 report failed (${response.status}): ${String(detail).slice(0, 500)}`)
+  }
   const json = await response.json()
   return (json.rows || []).map((row: any) => ({
     dimensions: (row.dimensionValues || []).map((v: any) => v.value),
