@@ -42,3 +42,48 @@ export async function getMetaDashboard(days = 30) {
   ])
   return { total: (total.data?.[0] || null) as MetaInsight | null, campaigns: (campaigns.data || []) as MetaInsight[], since, until }
 }
+
+
+export type MetaOrganicPost = {
+  id: string
+  message?: string
+  created_time?: string
+  permalink_url?: string
+}
+
+export async function getMetaOrganicDashboard(days = 30) {
+  const pageId = process.env.META_PAGE_ID || '134638476565968'
+  const sinceUnix = Math.floor((Date.now() - (days - 1) * 86400000) / 1000).toString()
+  const page = await graph(pageId, { fields: 'id,name,fan_count,followers_count,instagram_business_account{id,username,followers_count,media_count}' })
+  const posts = await graph(`${pageId}/posts`, {
+    fields: 'id,message,created_time,permalink_url',
+    since: sinceUnix,
+    limit: '50'
+  })
+  let instagramMedia: unknown[] = []
+  const instagramId = page?.instagram_business_account?.id
+  if (instagramId) {
+    const ig = await graph(`${instagramId}/media`, {
+      fields: 'id,caption,media_type,timestamp,permalink,like_count,comments_count',
+      since: sinceUnix,
+      limit: '50'
+    })
+    instagramMedia = ig.data || []
+  }
+  return {
+    facebook: {
+      id: page.id,
+      name: page.name,
+      fans: Number(page.fan_count || 0),
+      followers: Number(page.followers_count || 0),
+      posts: (posts.data || []) as MetaOrganicPost[],
+    },
+    instagram: page.instagram_business_account ? {
+      id: page.instagram_business_account.id,
+      username: page.instagram_business_account.username,
+      followers: Number(page.instagram_business_account.followers_count || 0),
+      mediaCount: Number(page.instagram_business_account.media_count || 0),
+      media: instagramMedia,
+    } : null,
+  }
+}
