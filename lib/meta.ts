@@ -20,7 +20,7 @@ export async function getMetaAdAccounts(): Promise<MetaAccount[]> {
   return json.data || []
 }
 
-const GOLFPASSI_AD_ACCOUNT = 'act_96351542'
+const GOLFPASSI_AD_ACCOUNT = process.env.META_AD_ACCOUNT_ID || 'act_96351542'
 
 export async function getMetaDashboard(days = 30) {
   const since = new Date(Date.now() - (days - 1) * 86400000).toISOString().slice(0,10)
