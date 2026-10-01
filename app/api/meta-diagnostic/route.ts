@@ -14,12 +14,13 @@ async function meta(path: string, params: Record<string,string> = {}) {
 export async function GET() {
   try {
     const accountId = process.env.META_AD_ACCOUNT_ID || 'act_96351542'
-    const [account, campaigns, insights] = await Promise.all([
+    const [account, campaigns, insights, last30] = await Promise.all([
       meta(accountId, { fields: 'id,name,account_id,account_status,currency,timezone_name' }),
       meta(`${accountId}/campaigns`, { fields: 'id,name,status,effective_status', limit: '10' }),
       meta(`${accountId}/insights`, { fields: 'spend,impressions,reach,clicks', date_preset: 'maximum', level: 'account', limit: '1' }),
+      meta(`${accountId}/insights`, { fields: 'spend,impressions,reach,clicks', date_preset: 'last_30d', level: 'account', limit: '1' }),
     ])
-    return NextResponse.json({ account, campaigns: campaigns.data || [], maximumInsights: insights.data || [] })
+    return NextResponse.json({ account, campaigns: campaigns.data || [], maximumInsights: insights.data || [], last30Insights: last30.data || [] })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
