@@ -10,7 +10,17 @@ async function accessToken() {
   const email = process.env.GA4_CLIENT_EMAIL
   const rawKey = process.env.GA4_PRIVATE_KEY
   if (!email || !rawKey) throw new Error('GA4 credentials missing')
-  const key = rawKey.replace(/\\n/g, '\n')
+  let key = rawKey.trim()
+  if (key.startsWith('"') && key.endsWith('"')) {
+    try { key = JSON.parse(key) } catch {}
+  }
+  key = key.replace(/\\\\n/g, '\\n').replace(/\\r\\n/g, '\\n').trim()
+  if (key.startsWith('{')) {
+    try {
+      const credentials = JSON.parse(key)
+      if (credentials.private_key) key = String(credentials.private_key).replace(/\\\\n/g, '\\n').trim()
+    } catch {}
+  }
   const now = Math.floor(Date.now() / 1000)
   const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
   const payload = base64url(JSON.stringify({
