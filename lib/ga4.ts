@@ -7,20 +7,23 @@ function base64url(value: string) {
 }
 
 async function accessToken() {
-  const email = process.env.GA4_CLIENT_EMAIL
-  const rawKey = process.env.GA4_PRIVATE_KEY
-  if (!email || !rawKey) throw new Error('GA4 credentials missing')
-  let key = rawKey.trim()
-  if (key.startsWith('"') && key.endsWith('"')) {
-    try { key = JSON.parse(key) } catch {}
-  }
-  key = key.replace(/\\\\n/g, '\\n').replace(/\\r\\n/g, '\\n').trim()
-  if (key.startsWith('{')) {
+  const credentialsJson = process.env.GA4_SERVICE_ACCOUNT_JSON
+  let email = process.env.GA4_CLIENT_EMAIL
+  let key = process.env.GA4_PRIVATE_KEY
+
+  if (credentialsJson) {
     try {
-      const credentials = JSON.parse(key)
-      if (credentials.private_key) key = String(credentials.private_key).replace(/\\\\n/g, '\\n').trim()
-    } catch {}
+      const credentials = JSON.parse(credentialsJson)
+      email = credentials.client_email || email
+      key = credentials.private_key || key
+    } catch {
+      throw new Error('GA4_SERVICE_ACCOUNT_JSON is not valid JSON')
+    }
   }
+
+  if (!email || !key) throw new Error('GA4 credentials missing')
+  key = key.replace(/\\n/g, '\n').trim()
+
   const now = Math.floor(Date.now() / 1000)
   const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
   const payload = base64url(JSON.stringify({
@@ -37,7 +40,7 @@ async function accessToken() {
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
+    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth2:grant-type:jwt-bearer', assertion: jwt }),
     cache: 'no-store',
   })
   if (!response.ok) throw new Error('Google authentication failed')
