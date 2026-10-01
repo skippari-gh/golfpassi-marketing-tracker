@@ -35,9 +35,10 @@ export async function getMetaDashboard(days = 30) {
   const until = helsinkiDate(0)
   const fields = 'campaign_name,spend,impressions,reach,clicks,ctr,cpc,cpm,actions'
   const accountFields = 'spend,impressions,reach,clicks,ctr,cpc,cpm,actions'
+  const timeRange = JSON.stringify({ since, until })
   const [total, campaigns] = await Promise.all([
-    graph(`${GOLFPASSI_AD_ACCOUNT}/insights`, { fields: accountFields, time_range: JSON.stringify({since,until}), level: 'account', limit: '1' }),
-    graph(`${GOLFPASSI_AD_ACCOUNT}/insights`, { fields, time_range: JSON.stringify({since,until}), level: 'campaign', limit: '100' }),
+    graph(`${GOLFPASSI_AD_ACCOUNT}/insights`, { fields: accountFields, time_range: timeRange, level: 'account', limit: '1' }),
+    graph(`${GOLFPASSI_AD_ACCOUNT}/insights`, { fields, time_range: timeRange, level: 'campaign', limit: '100' }),
   ])
   return { total: (total.data?.[0] || null) as MetaInsight | null, campaigns: (campaigns.data || []) as MetaInsight[], since, until }
 }
