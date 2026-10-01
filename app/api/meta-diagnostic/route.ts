@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getMetaOrganicDashboard } from '../../../lib/meta'
 
 async function meta(path: string, params: Record<string,string> = {}) {
   const token = process.env.META_ACCESS_TOKEN
@@ -27,7 +28,10 @@ export async function GET() {
       meta(`${accountId}/insights`, { fields: 'spend,impressions,reach,clicks', date_preset: 'this_month', level: 'account', limit: '1' }),
       meta(`${accountId}/insights`, { fields: 'spend,impressions,reach,clicks', date_preset: 'last_month', level: 'account', limit: '1' }),
     ])
-    return NextResponse.json({ account, campaigns: campaigns.data || [], maximumInsights: insights.data || [], last30Insights: last30.data || [], last90Insights: last90.data || [], thisYearInsights: thisYear.data || [], lastYearInsights: lastYear.data || [], last14Insights: last14.data || [], last28Insights: last28.data || [], thisMonthInsights: thisMonth.data || [], lastMonthInsights: lastMonth.data || [] })
+    let organic: unknown = null
+    let organicError = ''
+    try { organic = await getMetaOrganicDashboard(30) } catch (e) { organicError = e instanceof Error ? e.message : String(e) }
+    return NextResponse.json({ account, campaigns: campaigns.data || [], maximumInsights: insights.data || [], last30Insights: last30.data || [], last90Insights: last90.data || [], thisYearInsights: thisYear.data || [], lastYearInsights: lastYear.data || [], last14Insights: last14.data || [], last28Insights: last28.data || [], thisMonthInsights: thisMonth.data || [], lastMonthInsights: lastMonth.data || [], organic, organicError })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
