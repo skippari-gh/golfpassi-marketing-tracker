@@ -79,7 +79,7 @@ export async function getMetaOrganicDashboard(days = 30) {
   if (!account?.access_token) throw new Error(`Golfpassi Page access token missing for page ${pageId}`)
   const pageToken = String(account.access_token)
   const page = await graph(pageId, { fields: 'id,name,fan_count,followers_count,instagram_business_account{id,username,followers_count,media_count}' }, pageToken)
-  const posts = await graph(`${pageId}/posts`, {
+  const posts = await graph(`${pageId}/feed`, {
     fields: 'id,message,created_time,permalink_url,reactions.limit(0).summary(true),comments.limit(0).summary(true),shares',
     since: sinceUnix, limit: '50'
   }, pageToken)
