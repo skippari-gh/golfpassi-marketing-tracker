@@ -4,8 +4,8 @@ export type MetaInsight = {
   ctr?: string; cpc?: string; cpm?: string; actions?: { action_type: string; value: string }[]
 }
 
-async function graph(path: string, params: Record<string,string> = {}) {
-  const token = process.env.META_ACCESS_TOKEN
+async function graph(path: string, params: Record<string,string> = {}, tokenOverride?: string) {
+  const token = tokenOverride || process.env.META_ACCESS_TOKEN
   if (!token) throw new Error('META_ACCESS_TOKEN missing')
   const url = new URL('https://graph.facebook.com/v24.0/' + path.replace(/^\//,''))
   for (const [key,value] of Object.entries(params)) url.searchParams.set(key,value)
@@ -65,21 +65,27 @@ function insightValue(json: any, name: string) {
   return Number(value || 0)
 }
 
-async function safeGraph(path: string, params: Record<string,string> = {}) {
-  try { return await graph(path, params) } catch { return null }
+async function safeGraph(path: string, params: Record<string,string> = {}, tokenOverride?: string) {
+  try { return await graph(path, params, tokenOverride) } catch { return null }
 }
 
 export async function getMetaOrganicDashboard(days = 30) {
   const pageId = process.env.META_PAGE_ID || '134638476565968'
   const sinceUnix = Math.floor((Date.now() - (days - 1) * 86400000) / 1000).toString()
-  const page = await graph(pageId, { fields: 'id,name,fan_count,followers_count,instagram_business_account{id,username,followers_count,media_count}' })
+  // Organic Page/Instagram endpoints are most reliable with the Page access token.
+  // Resolve it from the valid user token instead of using the user token directly.
+  const accounts = await graph('me/accounts', { fields: 'id,name,access_token', limit: '100' })
+  const account = (accounts.data || []).find((x: any) => String(x.id) === String(pageId))
+  if (!account?.access_token) throw new Error(`Golfpassi Page access token missing for page ${pageId}`)
+  const pageToken = String(account.access_token)
+  const page = await graph(pageId, { fields: 'id,name,fan_count,followers_count,instagram_business_account{id,username,followers_count,media_count}' }, pageToken)
   const posts = await graph(`${pageId}/posts`, {
     fields: 'id,message,created_time,permalink_url,reactions.limit(0).summary(true),comments.limit(0).summary(true),shares',
     since: sinceUnix, limit: '50'
-  })
+  }, pageToken)
   const fbPosts = (posts.data || []) as MetaOrganicPost[]
   const fbRows: OrganicRow[] = await Promise.all(fbPosts.map(async post => {
-    const insights = await safeGraph(`${post.id}/insights`, { metric: 'post_impressions,post_impressions_unique,post_engaged_users,post_clicks' })
+    const insights = await safeGraph(`${post.id}/insights`, { metric: 'post_impressions,post_impressions_unique,post_engaged_users,post_clicks' }, pageToken)
     const likes = Number(post.reactions?.summary?.total_count || 0)
     const comments = Number(post.comments?.summary?.total_count || 0)
     const shares = Number(post.shares?.count || 0)
@@ -98,14 +104,14 @@ export async function getMetaOrganicDashboard(days = 30) {
     const ig = await graph(`${instagramId}/media`, {
       fields: 'id,caption,media_type,timestamp,permalink,like_count,comments_count',
       since: sinceUnix, limit: '50'
-    })
+    }, pageToken)
     igRows = await Promise.all((ig.data || []).map(async (m: any) => {
       // Meta has changed IG metric names over time. Request individually so one retired metric
       // cannot make the whole organic dashboard fail.
       const names = ['views','reach','total_interactions','shares','saved']
       const vals: Record<string,number> = {}
       await Promise.all(names.map(async name => {
-        const j = await safeGraph(`${m.id}/insights`, { metric: name })
+        const j = await safeGraph(`${m.id}/insights`, { metric: name }, pageToken)
         vals[name] = insightValue(j, name)
       }))
       const likes = Number(m.like_count || 0), comments = Number(m.comments_count || 0)
