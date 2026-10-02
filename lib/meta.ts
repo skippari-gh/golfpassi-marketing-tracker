@@ -137,16 +137,20 @@ export async function getMetaOrganicDashboard(days = 30) {
     igRows = await Promise.all((ig.data || []).map(async (m: any) => {
       // Meta has changed IG metric names over time. Request individually so one retired metric
       // cannot make the whole organic dashboard fail.
-      const names = ['views','reach','total_interactions','shares','saved']
+      const names = ['views','impressions','reach','total_interactions','shares','saved']
       const vals: Record<string,number> = {}
       await Promise.all(names.map(async name => {
         const j = await safeGraph(`${m.id}/insights`, { metric: name }, pageToken)
         vals[name] = insightValue(j, name)
       }))
+
+      // Older Instagram media can predate the current "views" metric. Keep the
+      // legacy impressions value as a fallback instead of turning valid historic
+      // data into zero. Reach has no safe substitute, so never fabricate it.
       const likes = Number(m.like_count || 0), comments = Number(m.comments_count || 0)
       return {
         id: m.id, text: m.caption || '(julkaisu ilman tekstiä)', createdTime: m.timestamp, permalink: m.permalink,
-        impressions: vals.views || 0, reach: vals.reach || 0,
+        impressions: vals.views || vals.impressions || 0, reach: vals.reach || 0,
         engagements: vals.total_interactions || likes + comments + (vals.shares || 0) + (vals.saved || 0),
         clicks: 0, likes, comments, shares: vals.shares || 0, saved: vals.saved || 0
       }
