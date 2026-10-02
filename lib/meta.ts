@@ -69,6 +69,29 @@ async function safeGraph(path: string, params: Record<string,string> = {}, token
   try { return await graph(path, params, tokenOverride) } catch { return null }
 }
 
+async function graphAll(path: string, params: Record<string,string> = {}, tokenOverride?: string) {
+  const token = tokenOverride || process.env.META_ACCESS_TOKEN
+  if (!token) throw new Error('META_ACCESS_TOKEN missing')
+
+  let nextUrl: string | null = null
+  let page = await graph(path, params, tokenOverride)
+  const data: any[] = [...(page.data || [])]
+  nextUrl = page?.paging?.next || null
+
+  // Follow Meta's cursor-based paging URLs until there are no more results.
+  // Cap the loop defensively so an unexpected API paging cycle cannot hang a request.
+  let pages = 1
+  while (nextUrl && pages < 100) {
+    const response = await fetch(nextUrl, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' })
+    const body = await response.json()
+    if (!response.ok) throw new Error(`Meta API failed (${response.status}): ${body?.error?.message || 'Unknown error'}`)
+    data.push(...(body.data || []))
+    nextUrl = body?.paging?.next || null
+    pages += 1
+  }
+  return { data }
+}
+
 export async function getMetaOrganicDashboard(days = 30) {
   const pageId = process.env.META_PAGE_ID || '134638476565968'
   const sinceUnix = Math.floor((Date.now() - (days - 1) * 86400000) / 1000).toString()
@@ -79,9 +102,9 @@ export async function getMetaOrganicDashboard(days = 30) {
   if (!account?.access_token) throw new Error(`Golfpassi Page access token missing for page ${pageId}`)
   const pageToken = String(account.access_token)
   const page = await graph(pageId, { fields: 'id,name,fan_count,followers_count,instagram_business_account{id,username,followers_count,media_count}' }, pageToken)
-  const posts = await graph(`${pageId}/feed`, {
+  const posts = await graphAll(`${pageId}/feed`, {
     fields: 'id,message,created_time,permalink_url,reactions.limit(0).summary(true),comments.limit(0).summary(true),shares',
-    since: sinceUnix, limit: '50'
+    since: sinceUnix, limit: '100'
   }, pageToken)
   const fbPosts = (posts.data || []) as MetaOrganicPost[]
   const fbRows: OrganicRow[] = await Promise.all(fbPosts.map(async post => {
@@ -107,9 +130,9 @@ export async function getMetaOrganicDashboard(days = 30) {
   let igRows: OrganicRow[] = []
   const instagramId = page?.instagram_business_account?.id
   if (instagramId) {
-    const ig = await graph(`${instagramId}/media`, {
+    const ig = await graphAll(`${instagramId}/media`, {
       fields: 'id,caption,media_type,timestamp,permalink,like_count,comments_count',
-      since: sinceUnix, limit: '50'
+      since: sinceUnix, limit: '100'
     }, pageToken)
     igRows = await Promise.all((ig.data || []).map(async (m: any) => {
       // Meta has changed IG metric names over time. Request individually so one retired metric
