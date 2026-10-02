@@ -36,7 +36,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
           <article className="channel">
             <div className="channelTitle"><div><span>FACEBOOK</span><h3>{organic.facebook.name}</h3></div><strong>{nf.format(organic.facebook.followers)} <small>seuraajaa</small></strong></div>
             <div className="miniCards">{[
-              ['Näyttökerrat',organic.facebook.total.impressions],['Tavoittavuus',organic.facebook.total.reach],
+              ['Näyttökerrat',organic.facebook.total.impressions],['Julkaisujen tavoittavuus yht.',organic.facebook.total.reach],
               ['Sitoutumiset',organic.facebook.total.engagements],['Linkki-/julkaisuklikit',organic.facebook.total.clicks]
             ].map(([l,v])=><div key={l}><span>{l}</span><b>{nf.format(Number(v))}</b></div>)}</div>
             <h4>Parhaiten sitouttaneet julkaisut</h4>
@@ -45,7 +45,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
           <article className="channel">
             <div className="channelTitle"><div><span>INSTAGRAM</span><h3>@{organic.instagram?.username || '—'}</h3></div><strong>{nf.format(organic.instagram?.followers||0)} <small>seuraajaa</small></strong></div>
             <div className="miniCards">{[
-              ['Näyttökerrat',organic.instagram?.total.impressions||0],['Tavoittavuus',organic.instagram?.total.reach||0],
+              ['Näyttökerrat',organic.instagram?.total.impressions||0],['Julkaisujen tavoittavuus yht.',organic.instagram?.total.reach||0],
               ['Sitoutumiset',organic.instagram?.total.engagements||0],['Tallennukset',organic.instagram?.total.saved||0]
             ].map(([l,v])=><div key={l}><span>{l}</span><b>{nf.format(Number(v))}</b></div>)}</div>
             <h4>Parhaiten sitouttaneet julkaisut</h4>
