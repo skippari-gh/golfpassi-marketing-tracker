@@ -7,7 +7,7 @@ export type MetaInsight = {
 async function graph(path: string, params: Record<string,string> = {}, tokenOverride?: string) {
   const token = tokenOverride || process.env.META_ACCESS_TOKEN
   if (!token) throw new Error('META_ACCESS_TOKEN missing')
-  const url = new URL('https://graph.facebook.com/v24.0/' + path.replace(/^\//,''))
+  const url = new URL('https://graph.facebook.com/v26.0/' + path.replace(/^\//,''))
   for (const [key,value] of Object.entries(params)) url.searchParams.set(key,value)
   const response = await fetch(url, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' })
   const body = await response.json()
@@ -85,15 +85,21 @@ export async function getMetaOrganicDashboard(days = 30) {
   }, pageToken)
   const fbPosts = (posts.data || []) as MetaOrganicPost[]
   const fbRows: OrganicRow[] = await Promise.all(fbPosts.map(async post => {
-    const insights = await safeGraph(`${post.id}/insights`, { metric: 'post_impressions,post_impressions_unique,post_engaged_users,post_clicks' }, pageToken)
+    // Meta retired post_impressions_unique in 2026. Request current metrics
+    // individually so one unavailable metric cannot zero the whole post.
+    const metricNames = ['post_media_view','post_total_media_view_unique','post_engaged_users','post_clicks']
+    const vals: Record<string,number> = {}
+    await Promise.all(metricNames.map(async name => {
+      const j = await safeGraph(`${post.id}/insights`, { metric: name }, pageToken)
+      vals[name] = insightValue(j, name)
+    }))
     const likes = Number(post.reactions?.summary?.total_count || 0)
     const comments = Number(post.comments?.summary?.total_count || 0)
     const shares = Number(post.shares?.count || 0)
-    const engaged = insightValue(insights, 'post_engaged_users')
     return {
       id: post.id, text: post.message || '(julkaisu ilman tekstiä)', createdTime: post.created_time, permalink: post.permalink_url,
-      impressions: insightValue(insights, 'post_impressions'), reach: insightValue(insights, 'post_impressions_unique'),
-      engagements: engaged || likes + comments + shares, clicks: insightValue(insights, 'post_clicks'),
+      impressions: vals.post_media_view || 0, reach: vals.post_total_media_view_unique || 0,
+      engagements: vals.post_engaged_users || likes + comments + shares, clicks: vals.post_clicks || 0,
       likes, comments, shares, saved: 0
     }
   }))
