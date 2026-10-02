@@ -233,6 +233,10 @@ export default async function TripsPage({
     <main className="container">
       <nav className="nav">
         <Link href="/">
+          Etusivu
+        </Link>
+
+        <Link href="/">
           Nosta seuraavaksi
         </Link>
 
