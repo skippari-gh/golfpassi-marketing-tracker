@@ -296,8 +296,6 @@ export default async function TripsPage({
               <th><Link href={sortHref('departures')}>{sortLabel('Lähdöt', 'departures')}</Link></th>
               <th><Link href={sortHref('next')}>{sortLabel('Seuraava lähtö', 'next')}</Link></th>
               <th>Alkaen-hinta</th>
-              <th><Link href={sortHref('last')}>{sortLabel('Viimeksi', 'last')}</Link></th>
-              <th><Link href={sortHref('priority')}>{sortLabel('Prioriteetti', 'priority')}</Link></th>
             </tr>
           </thead>
 
@@ -307,7 +305,7 @@ export default async function TripsPage({
               if (sectionDestinations.length === 0) return null
               return [
                 <tr className="trip-section-row" key={`${section.key}-heading`}>
-                  <td colSpan={7}><strong>{section.title}</strong></td>
+                  <td colSpan={5}><strong>{section.title}</strong></td>
                 </tr>,
                 ...sectionDestinations.map((destination) => {
             const nextTrip = destination.trips[0]
@@ -321,26 +319,12 @@ export default async function TripsPage({
                 null
               )
 
-            const lastMarketedAt =
-              destination.trips
-                .map((trip) => trip.last_marketed_at)
-                .filter(
-                  (date): date is string => Boolean(date)
-                )
-                .sort()
-                .at(-1) || null
-
-            const priorityScore = Math.max(
-              ...destination.trips.map(
-                (trip) => trip.priority_score
-              )
-            )
 
             return (
               <tr key={destination.key}>
                 <td
                   className="trip-destination-cell"
-                  colSpan={7}
+                  colSpan={5}
                 >
                   <details className="trip-destination-details">
                     <summary className="trip-destination-summary">
@@ -387,11 +371,6 @@ export default async function TripsPage({
                           : '—'}
                       </span>
 
-                      <span className="trip-date">
-                        {formatDate(lastMarketedAt)}
-                      </span>
-
-                      <span>{priorityScore}</span>
                     </summary>
 
                     <div className="trip-departure-rows">
@@ -442,13 +421,6 @@ export default async function TripsPage({
                               : '—'}
                           </span>
 
-                          <span className="trip-date">
-                            {formatDate(
-                              departure.last_marketed_at
-                            )}
-                          </span>
-
-                          <span>{departure.priority_score}</span>
                         </div>
                       ))}
                     </div>
@@ -462,7 +434,7 @@ export default async function TripsPage({
 
             {destinations.length === 0 && (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={5}>
                   Hakua vastaavia matkoja ei löytynyt.
                 </td>
               </tr>
