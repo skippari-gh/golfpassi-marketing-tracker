@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getMetaOrganicDashboard } from '../../../lib/meta'
 
 async function meta(path: string, params: Record<string,string> = {}) {
-  const token = process.env.META_ACCESS_TOKEN
+  const token = process.env.META_PAGE_ACCESS_TOKEN || process.env.META_ACCESS_TOKEN
   if (!token) throw new Error('META_ACCESS_TOKEN missing')
   const url = new URL('https://graph.facebook.com/v24.0/' + path)
   Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v))
