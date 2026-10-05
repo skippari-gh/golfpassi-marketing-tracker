@@ -17,6 +17,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   try { data = await getGa4Dashboard(days) } catch (e) { error = e instanceof Error ? e.message : 'GA4-yhteys ei ole vielä valmis' }
   try { meta = await getMetaDashboard(days) } catch (e) { metaError = e instanceof Error ? e.message : 'Meta-yhteys ei ole vielä valmis' }
   try { organic = await getMetaOrganicDashboard(days) } catch (e) { organicError = e instanceof Error ? e.message : 'Metan orgaaninen data ei ole vielä saatavilla' }
+  const metaAuthExpired = (message: string) => message.startsWith('META_AUTH_EXPIRED:')
   const labels = ['Käyttäjät','Uudet käyttäjät','Istunnot','Sivunäytöt','Sitoutumisaste','Key events']
   return <main className="ga">
     <header><Link href="/">← Etusivu</Link><div><b>Golfpassi</b> Marketing Tracker</div></header>
@@ -31,7 +32,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
     </>}
     <section className="organic">
       <div className="metaHead"><div><span>META · ORGAANINEN</span><h2>Facebook & Instagram</h2><p>Golfpassin omien somekanavien orgaaninen näkyvyys ja sitoutuminen samalta ajanjaksolta.</p></div></div>
-      {organicError ? <section className="notice organicNotice"><h2>Orgaanisen Metan yhteys</h2><small>{organicError}</small></section> : organic && <>
+      {organicError ? <section className="notice organicNotice"><h2>{metaAuthExpired(organicError)?'Meta-yhteys on uusittava':'Orgaanisen Metan yhteys'}</h2><p>{metaAuthExpired(organicError)?'Tallennettu Meta-tunniste on vanhentunut. Dataa ei näytetä vanhentuneena tai nollina.':'Orgaanista Meta-dataa ei juuri nyt saada.'}</p>{!metaAuthExpired(organicError)&&<small>{organicError}</small>}</section> : organic && <>
         <div className="organicGrid">
           <article className="channel">
             <div className="channelTitle"><div><span>FACEBOOK</span><h3>{organic.facebook.name}</h3></div><strong>{nf.format(organic.facebook.followers)} <small>seuraajaa</small></strong></div>
@@ -56,7 +57,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
     </section>
     <section className="meta">
       <div className="metaHead"><div><span>META ADS</span><h2>Golfpassi Oy</h2><p>Maksetun somemainonnan tulokset samalta ajanjaksolta.</p></div></div>
-      {metaError ? <section className="notice"><h2>Meta-yhteys</h2><small>{metaError}</small></section> : meta && <>
+      {metaError ? <section className="notice"><h2>{metaAuthExpired(metaError)?'Meta Ads -yhteys on uusittava':'Meta-yhteys'}</h2><p>{metaAuthExpired(metaError)?'Tallennettu Meta-tunniste on vanhentunut. Raportti säilyttää muun analytiikan toiminnassa eikä esitä virheellisiä nollalukuja.':'Meta Ads -dataa ei juuri nyt saada.'}</p>{!metaAuthExpired(metaError)&&<small>{metaError}</small>}</section> : meta && <>
         <section className="cards metaCards">{[
           ['Kulut', Number(meta.total?.spend||0).toLocaleString('fi-FI',{style:'currency',currency:'EUR'})],
           ['Näyttökerrat', nf.format(Number(meta.total?.impressions||0))],
