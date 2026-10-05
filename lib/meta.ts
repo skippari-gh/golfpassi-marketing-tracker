@@ -11,7 +11,13 @@ async function graph(path: string, params: Record<string,string> = {}, tokenOver
   for (const [key,value] of Object.entries(params)) url.searchParams.set(key,value)
   const response = await fetch(url, { headers: { authorization: `Bearer ${token}` }, cache: 'no-store' })
   const body = await response.json()
-  if (!response.ok) throw new Error(`Meta API failed (${response.status}): ${body?.error?.message || 'Unknown error'}`)
+  if (!response.ok) {
+    const message = body?.error?.message || 'Unknown error'
+    const code = body?.error?.code
+    const subcode = body?.error?.error_subcode
+    if (code === 190) throw new Error(`META_AUTH_EXPIRED:${subcode || ''}:${message}`)
+    throw new Error(`Meta API failed (${response.status}): ${message}`)
+  }
   return body
 }
 
@@ -97,10 +103,16 @@ export async function getMetaOrganicDashboard(days = 30) {
   const sinceUnix = Math.floor((Date.now() - (days - 1) * 86400000) / 1000).toString()
   // Organic Page/Instagram endpoints are most reliable with the Page access token.
   // Resolve it from the valid user token instead of using the user token directly.
-  const accounts = await graph('me/accounts', { fields: 'id,name,access_token', limit: '100' })
-  const account = (accounts.data || []).find((x: any) => String(x.id) === String(pageId))
-  if (!account?.access_token) throw new Error(`Golfpassi Page access token missing for page ${pageId}`)
-  const pageToken = String(account.access_token)
+  // Prefer a dedicated Page token in production. This removes the fragile dependency on
+  // a short-lived Graph API Explorer user session. Keep META_ACCESS_TOKEN as a backwards-
+  // compatible fallback while the permanent credential is being provisioned.
+  let pageToken = process.env.META_PAGE_ACCESS_TOKEN
+  if (!pageToken) {
+    const accounts = await graph('me/accounts', { fields: 'id,name,access_token', limit: '100' })
+    const account = (accounts.data || []).find((x: any) => String(x.id) === String(pageId))
+    if (!account?.access_token) throw new Error(`Golfpassi Page access token missing for page ${pageId}`)
+    pageToken = String(account.access_token)
+  }
   const page = await graph(pageId, { fields: 'id,name,fan_count,followers_count,instagram_business_account{id,username,followers_count,media_count}' }, pageToken)
   const posts = await graphAll(`${pageId}/feed`, {
     fields: 'id,message,created_time,permalink_url,reactions.limit(0).summary(true),comments.limit(0).summary(true),shares',
