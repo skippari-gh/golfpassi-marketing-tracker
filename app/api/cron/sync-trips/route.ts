@@ -5,6 +5,11 @@ export const maxDuration = 60
 export async function GET(
   request: Request
 ) {
+  console.log('[cron/sync-trips] invoked', {
+    schedule: request.headers.get('x-vercel-cron-schedule'),
+    at: new Date().toISOString(),
+  })
+
   const cronSecret =
     process.env.CRON_SECRET
 
