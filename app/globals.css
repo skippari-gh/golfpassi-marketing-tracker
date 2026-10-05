@@ -56,7 +56,7 @@ th { background:#f0f6fb; }
 .trip-destination-summary,
 .trip-departure-list-row {
   display: grid;
-  grid-template-columns: 27fr 12fr 10fr 17fr 12fr 14fr 8fr;
+  grid-template-columns: 27fr 12fr 10fr 17fr 12fr;
   align-items: center;
   column-gap: 0;
   padding: 12px;
