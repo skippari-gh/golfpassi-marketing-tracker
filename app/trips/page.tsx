@@ -390,39 +390,40 @@ export default async function TripsPage({
                         </Link>
                       </div>
 
-                      {destination.trips.map((departure) => (
-                        <div
-                          className="trip-departure-list-row"
-                          key={departure.id}
-                        >
-                          <Link
-                            className="trip-departure-link"
-                            href={`/trips/${departure.id}`}
+                      {destination.trips.length > 1 &&
+                        destination.trips.map((departure) => (
+                          <div
+                            className="trip-departure-list-row"
+                            key={departure.id}
                           >
-                            {departure.name}
-                          </Link>
+                            <Link
+                              className="trip-departure-link"
+                              href={`/trips/${departure.id}`}
+                            >
+                              {departure.name}
+                            </Link>
 
-                          <span>{departure.country}</span>
+                            <span>{departure.country}</span>
 
-                          <span className="trip-departure-label">
-                            Lähtö
-                          </span>
+                            <span className="trip-departure-label">
+                              Lähtö
+                            </span>
 
-                          <span className="trip-date">
-                            {formatDateRange(
-                              departure.start_date,
-                              departure.end_date
-                            )}
-                          </span>
+                            <span className="trip-date">
+                              {formatDateRange(
+                                departure.start_date,
+                                departure.end_date
+                              )}
+                            </span>
 
-                          <span className="trip-price">
-                            {departure.price_from != null
-                              ? `${departure.price_from.toLocaleString('fi-FI')} €`
-                              : '—'}
-                          </span>
+                            <span className="trip-price">
+                              {departure.price_from != null
+                                ? `${departure.price_from.toLocaleString('fi-FI')} €`
+                                : '—'}
+                            </span>
 
-                        </div>
-                      ))}
+                          </div>
+                        ))}
                     </div>
                   </details>
                 </td>
