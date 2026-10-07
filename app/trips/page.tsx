@@ -376,7 +376,7 @@ export default async function TripsPage({
                     <div className="trip-departure-rows">
                       <div className="trip-destination-actions">
                         <div>
-                          <strong>Kohteen markkinointi</strong>
+                          <strong>{destination.name}</strong>
                           <p className="meta">
                             Kaikki lähtöpäivät, suunnitelmat ja tehdyt toimet yhdessä näkymässä.
                           </p>
