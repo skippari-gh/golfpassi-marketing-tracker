@@ -85,6 +85,36 @@ function formatDateRange(
   return `${start.day}.${start.month}.${start.year}–${end.day}.${end.month}.${end.year}`
 }
 
+function tripDurationDays(startDate: string, endDate: string): number | null {
+  const start = parseDate(startDate)
+  const end = parseDate(endDate)
+  if (!start || !end) return null
+  const days = Math.round((
+    Date.UTC(end.year, end.month - 1, end.day) -
+    Date.UTC(start.year, start.month - 1, start.day)
+  ) / 86400000)
+  return days > 0 && days <= 180 ? days : null
+}
+
+function nameWithDuration(name: string, startDate: string, endDate: string) {
+  const days = tripDurationDays(startDate, endDate)
+  if (days == null) return name
+  // Vältä kahteen kertaan lisättyä matkan pituutta.
+  const cleaned = name.replace(/\\s+\\d+\\s*vrk\\b/giu, '').trim()
+  return `${cleaned} ${days} vrk`
+}
+
+function destinationNameWithDurations(
+  name: string,
+  trips: { start_date: string; end_date: string }[]
+) {
+  const durations = [...new Set(trips.map((trip) =>
+    tripDurationDays(trip.start_date, trip.end_date)
+  ).filter((days): days is number => days !== null))].sort((a, b) => a - b)
+  if (!durations.length) return name
+  return `${name} ${durations.join(' ja ')} vrk`
+}
+
 function normalizeText(value: string) {
   return value
     .normalize('NFD')
@@ -335,7 +365,7 @@ export default async function TripsPage({
                         >
                           ›
                         </span>
-                        {destination.name}
+                        {destinationNameWithDurations(destination.name, destination.trips)}
                         {firstSevenDayUrl(destination) && (
                           <a
                             className="trip-site-link"
@@ -376,7 +406,7 @@ export default async function TripsPage({
                     <div className="trip-departure-rows">
                       <div className="trip-destination-actions">
                         <div>
-                          <strong>{destination.name}</strong>
+                          <strong>{destinationNameWithDurations(destination.name, destination.trips)}</strong>
                           <p className="meta">
                             Kaikki lähtöpäivät, suunnitelmat ja tehdyt toimet yhdessä näkymässä.
                           </p>
@@ -400,7 +430,7 @@ export default async function TripsPage({
                               className="trip-departure-link"
                               href={`/trips/${departure.id}`}
                             >
-                              {departure.name}
+                              {nameWithDuration(departure.name, departure.start_date, departure.end_date)}
                             </Link>
 
                             <span>{departure.country}</span>
