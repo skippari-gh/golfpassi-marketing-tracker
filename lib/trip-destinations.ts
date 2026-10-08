@@ -109,7 +109,12 @@ export function groupTripsByDestination<
     const destination =
       getTripDestination(trip)
 
-    const destinationKey = destination.key
+    const destinationKey =
+      destination.key === 'italia|picciolo-etna-golf-resort-spa-curio-collection-by-hilton'
+        ? 'f925e38a-e1ec-4115-b5b2-927d1c0a8c41'
+        : destination.key === 'marokko|riu-tikida-palmeraie-marrakech'
+          ? '9ce889be-0e12-4715-a842-ed84b830c9c4'
+          : trip.destination_id || destination.key
 
     const existingGroup =
       groups.get(destinationKey)
