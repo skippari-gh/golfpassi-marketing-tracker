@@ -686,6 +686,49 @@ export default async function Home({
       .limit(20),
   ])
 
+  // Synkronointi säilyttää rivin created_at-arvon upsertissa:
+  // vain aidosti ensi kertaa löydetyt lähtörivit näkyvät tässä.
+  const { data: arrivalRows, error: arrivalError } = await supabase
+    .from('trips')
+    .select('id, name, country, url, destination_id, start_date, end_date, created_at, status, source_type')
+    .in('source_type', ['pelimatka', 'kurssimatka'])
+    .order('created_at', { ascending: true })
+  if (arrivalError) console.error('Uusimpien matkojen haku:', arrivalError.message)
+  const arrivalTrips = (arrivalRows || []).filter((trip) => trip.status === 'active' && trip.created_at)
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const recentByDestination = new Map<string, {
+    key: string; id: string; name: string; country: string; url: string | null;
+    addedAt: string; isNew: boolean; dates: string[]
+  }>()
+  for (const trip of arrivalTrips) {
+    const addedAt = new Date(trip.created_at).getTime()
+    if (!Number.isFinite(addedAt) || addedAt < cutoff) continue
+    const key = trip.destination_id || trip.url || trip.name
+    const previous = arrivalTrips.some((older) =>
+      older.id !== trip.id &&
+      (older.destination_id || older.url || older.name) === key &&
+      new Date(older.created_at).getTime() < cutoff
+    )
+    const dateLabel = [trip.start_date, trip.end_date].filter(Boolean).map((d) => {
+      const [year, month, day] = d.split('-')
+      return `${Number(day)}.${Number(month)}.${year}`
+    }).join('–')
+    const current = recentByDestination.get(key)
+    if (current) {
+      if (!current.dates.includes(dateLabel)) current.dates.push(dateLabel)
+      if (trip.created_at > current.addedAt) current.addedAt = trip.created_at
+    } else {
+      recentByDestination.set(key, {
+        key, id: trip.id, name: trip.name, country: trip.country,
+        url: trip.url, addedAt: trip.created_at, isNew: !previous,
+        dates: [dateLabel],
+      })
+    }
+  }
+  const recentTripChanges = [...recentByDestination.values()]
+    .sort((a, b) => b.addedAt.localeCompare(a.addedAt))
+    .slice(0, 12)
+
   const bulletinMessages = bulletinResult.data || []
 
   const today = getToday()
@@ -2280,6 +2323,34 @@ export default async function Home({
             </div>
           </section>
 
+          <div style={{ display: 'grid', gap: 18, minWidth: 0 }}>
+            <section className="panel">
+              <div className="panel-inner">
+                <div className="panel-heading">
+                  <div>
+                    <span className="panel-overline">Viimeiset 7 päivää</span>
+                    <h2>Uusimmat matkat</h2>
+                    <p>Uudet matkat ja kohteisiin lisätyt lähdöt.</p>
+                  </div>
+                </div>
+                {recentTripChanges.length === 0 ? (
+                  <p className="empty-message">Ei vahvistettuja uusia matkoja tai lähtöjä viimeisen 7 päivän aikana.</p>
+                ) : (
+                  <div className="compact-list">
+                    {recentTripChanges.map((item) => (
+                      <article className="compact-card" key={item.key}>
+                        <span className="score">{item.isNew ? 'Uusi matka' : 'Uusia lähtöjä'}</span>
+                        <h3><Link href={item.url || `/trips/${item.id}`}>{item.name}</Link></h3>
+                        <p>{item.country}</p>
+                        <p>{item.dates.join(', ')}</p>
+                        <small>Lisätty {new Intl.DateTimeFormat('fi-FI', { dateStyle: 'short', timeZone: 'Europe/Helsinki' }).format(new Date(item.addedAt))}</small>
+                      </article>
+                    ))}
+                  </div>
+                )}
+                <p style={{ marginTop: 12, fontSize: 12, color: '#6d7e8b' }}>Päivittyy Matkat-listauksen aamuisen synkronoinnin yhteydessä.</p>
+              </div>
+            </section>
           <section className="panel">
             <div className="panel-inner">
               <div className="panel-heading">
@@ -2329,6 +2400,8 @@ export default async function Home({
               )}
             </div>
           </section>
+
+          </div>
 
           <section className="panel">
             <div className="panel-inner">
