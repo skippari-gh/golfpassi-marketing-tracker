@@ -959,6 +959,15 @@ async function scrapeSource(
           'url_slug'
       }
 
+      // Kohteen nimi on ensisijainen, ei listaussivun mainosotsikko.
+      if (tripUrl.pathname.includes('picciolo-etna-golf-resort-spa-curio-collection-by-hilton')) {
+        name = 'Picciolo Etna Golf Resort & Spa, Curio Collection by Hilton'
+        nameSource = 'exact_url'
+      } else if (tripUrl.pathname.includes('riu-tikida-palmeraie-marrakech')) {
+        name = 'Riu Tikida Palmeraie, Marrakech'
+        nameSource = 'exact_url'
+      }
+
       const temporaryKey = [
         source.sourceType,
         exactUrl,
