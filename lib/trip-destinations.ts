@@ -7,6 +7,7 @@ export type DestinationTrip = {
   country: string
   start_date: string
   end_date: string
+  url?: string | null
 }
 
 export type TripDestinationGroup<
@@ -57,6 +58,24 @@ export function getTripDestination(
     nameWithoutDuration ||
     trip.name
 
+  // Käytä lähdesivun pysyvää kohdetunnistetta: 7 ja 14 vrk
+  // sekä markkinointiotsikot eivät saa jakaa samaa hotellia eri ryhmiin.
+  const sourcePath = 'url' in trip && typeof trip.url === 'string'
+    ? (() => { try { return new URL(trip.url).pathname.toLowerCase() } catch { return '' } })()
+    : ''
+  if (sourcePath.includes('picciolo-etna-golf-resort-spa-curio-collection-by-hilton')) {
+    return {
+      key: 'italia|picciolo-etna-golf-resort-spa-curio-collection-by-hilton',
+      name: 'Picciolo Etna Golf Resort & Spa, Curio Collection by Hilton',
+    }
+  }
+  if (sourcePath.includes('riu-tikida-palmeraie-marrakech')) {
+    return {
+      key: 'marokko|riu-tikida-palmeraie-marrakech',
+      name: 'Riu Tikida Palmeraie, Marrakech',
+    }
+  }
+
   const destinationName =
     normalizeTripIdentityText(
       firstPart
@@ -90,9 +109,7 @@ export function groupTripsByDestination<
     const destination =
       getTripDestination(trip)
 
-    const destinationKey =
-      trip.destination_id ||
-      destination.key
+    const destinationKey = destination.key
 
     const existingGroup =
       groups.get(destinationKey)
