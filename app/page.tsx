@@ -1,3 +1,5 @@
+import { cookies } from 'next/headers'
+import { randomBytes } from 'node:crypto'
 import Image from 'next/image'
 import Link from 'next/link'
 import { revalidatePath } from 'next/cache'
@@ -628,12 +630,27 @@ async function addBulletinMessage(formData: FormData) {
     throw new Error('Kirjoita nimi ja viesti.')
   }
 
-  const { error } = await supabase.from('bulletin_messages').insert({
-    author_name: authorName.slice(0, 80),
-    message: message.slice(0, 1000),
-  })
+  const cookieStore = await cookies()
+  let token = cookieStore.get('bulletin_edit_token')?.value
+  if (!token) {
+    token = randomBytes(32).toString('hex')
+    cookieStore.set('bulletin_edit_token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 365 })
+  }
+  const { error } = await supabase.rpc('bulletin_create', { p_author: authorName.slice(0, 80), p_message: message.slice(0, 1000), p_token: token })
 
   if (error) throw new Error(error.message)
+  revalidatePath('/')
+}
+
+async function editBulletinMessage(formData: FormData) {
+  'use server'
+  const token = (await cookies()).get('bulletin_edit_token')?.value
+  if (!token) throw new Error('Viestin muokkausoikeutta ei löydy tältä selaimelta.')
+  const id = String(formData.get('id') || '')
+  const message = String(formData.get('message') || '').trim()
+  if (!message || message.length > 1000) throw new Error('Viestin pituus on 1–1000 merkkiä.')
+  const { data, error } = await supabase.rpc('bulletin_edit', { p_id: id, p_message: message, p_token: token })
+  if (error || !data) throw new Error('Viestin muokkaus ei onnistunut tai muokkausoikeus puuttuu.')
   revalidatePath('/')
 }
 
@@ -681,7 +698,7 @@ export default async function Home({
     getMarketingCalendar(),
     supabase
       .from('bulletin_messages')
-      .select('id, author_name, message, created_at')
+      .select('id, author_name, message, created_at, edited_at, edit_token_hash')
       .order('created_at', { ascending: false })
       .limit(20),
   ])
@@ -729,6 +746,9 @@ export default async function Home({
     .sort((a, b) => b.addedAt.localeCompare(a.addedAt))
     .slice(0, 12)
 
+  const editToken = (await cookies()).get('bulletin_edit_token')?.value
+  const { createHash } = await import('node:crypto')
+  const editTokenHash = editToken ? createHash('md5').update(editToken).digest('hex') : null
   const bulletinMessages = bulletinResult.data || []
 
   const today = getToday()
@@ -2394,6 +2414,17 @@ export default async function Home({
                         }).format(new Date(message.created_at))}</time>
                       </div>
                       <p>{message.message}</p>
+                      {message.edited_at && <small>Muokattu {new Intl.DateTimeFormat('fi-FI', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Helsinki' }).format(new Date(message.edited_at))}</small>}
+                      {editTokenHash && message.edit_token_hash === editTokenHash && (
+                        <details className="bulletin-edit">
+                          <summary>Muokkaa viestiä</summary>
+                          <form action={editBulletinMessage} className="bulletin-form">
+                            <input type="hidden" name="id" value={message.id} />
+                            <textarea name="message" defaultValue={message.message} rows={3} maxLength={1000} required />
+                            <button className="button" type="submit">Tallenna muutokset</button>
+                          </form>
+                        </details>
+                      )}
                     </article>
                   ))}
                 </div>
