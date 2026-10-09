@@ -654,6 +654,16 @@ async function editBulletinMessage(formData: FormData) {
   revalidatePath('/')
 }
 
+async function deleteBulletinMessage(formData: FormData) {
+  'use server'
+  const token = (await cookies()).get('bulletin_edit_token')?.value
+  if (!token) throw new Error('Viestin poisto-oikeutta ei löydy tältä selaimelta.')
+  const id = String(formData.get('id') || '')
+  const { data, error } = await supabase.rpc('bulletin_delete', { p_id: id, p_token: token })
+  if (error || !data) throw new Error('Viestin poistaminen ei onnistunut tai oikeus puuttuu.')
+  revalidatePath('/')
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -2424,6 +2434,12 @@ export default async function Home({
                             <button className="button" type="submit">Tallenna muutokset</button>
                           </form>
                         </details>
+                      )}
+                      {editTokenHash && message.edit_token_hash === editTokenHash && (
+                        <form action={deleteBulletinMessage} style={{ marginTop: 12 }}>
+                          <input type="hidden" name="id" value={message.id} />
+                          <ConfirmActionButton className="button" message="Poistetaanko viesti pysyvästi?" confirmLabel="Poista viesti">Poista viesti</ConfirmActionButton>
+                        </form>
                       )}
                     </article>
                   ))}
