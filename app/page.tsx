@@ -2436,10 +2436,7 @@ export default async function Home({
                         </details>
                       )}
                       {editTokenHash && message.edit_token_hash === editTokenHash && (
-                        <form action={deleteBulletinMessage} style={{ marginTop: 12 }}>
-                          <input type="hidden" name="id" value={message.id} />
-                          <ConfirmActionButton className="button" message="Poistetaanko viesti pysyvästi?" confirmLabel="Poista viesti">Poista viesti</ConfirmActionButton>
-                        </form>
+                        <ConfirmActionButton action={deleteBulletinMessage} itemId={message.id} fieldName="id" label="Poista viesti" confirmMessage="Poistetaanko viesti pysyvästi?" formClassName="bulletin-delete" buttonClassName="button danger" />
                       )}
                     </article>
                   ))}
