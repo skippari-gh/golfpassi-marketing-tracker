@@ -1664,223 +1664,40 @@ async function mergeExistingDuplicates(
   }
 }
 
-async function saveTripsToSupabase(
-  trips: ScrapedTrip[]
-) {
-  const now =
-    new Date()
-      .toISOString()
-
-    const {
-      data: existingData,
-      error: existingError,
-    } = await supabase
-      .from('trips')
-      .select(
-        'id, name, country, start_date, end_date, url, source_url, source_key, source_type'
-      )
-
-    if (existingError) {
-      throw new Error(
-        `Nykyisten matkojen haku epäonnistui: ${existingError.message}`
-      )
+async function saveTripsToSupabase(trips: ScrapedTrip[]) {
+  const now = new Date().toISOString()
+  const { data: existingData, error } = await supabase.from('trips').select('id,name,country,start_date,end_date,url,source_url,source_key,source_type,destination_id,status,price_from')
+  if (error) throw new Error(error.message)
+  const existing = existingData || []
+  const byKey = new Map(existing.filter(t => t.source_key).map(t => [t.source_key, t]))
+  const { data: destinations, error: destinationError } = await supabase.from('destinations').select('id,name,country')
+  if (destinationError) throw new Error(destinationError.message)
+  let added = 0
+  let updated = 0
+  let skipped = 0
+  for (const trip of trips) {
+    const country = getCountryFromUrl(trip.url)
+    let match = byKey.get(trip.source_key)
+    if (!match) {
+      const candidates = existing.filter(t => t.start_date === trip.start_date && t.end_date === trip.end_date && (t.source_url === trip.url || t.url === trip.url))
+      if (candidates.length === 1) match = candidates[0]
     }
-
-    const existingTrips =
-      (existingData ||
-        []) as ExistingTrip[]
-
-    const trackedExistingTrips =
-      existingTrips.filter(
-        (trip) =>
-          trip.source_type ===
-            'pelimatka' ||
-          trip.source_type ===
-            'kurssimatka'
-      )
-
-    const existingKeySet =
-      new Set(
-        trackedExistingTrips
-          .map(
-            (trip) =>
-              trip.source_key
-          )
-          .filter(
-            (
-              key
-            ): key is string =>
-              Boolean(key)
-          )
-      )
-
-    const currentKeySet =
-      new Set(
-        trips.map(
-          (trip) =>
-            trip.source_key
-        )
-      )
-
-    const addedCount =
-      trips.filter(
-        (trip) =>
-          !existingKeySet.has(
-            trip.source_key
-          )
-      ).length
-
-    const updatedCount =
-      trips.length -
-      addedCount
-
-    const databaseRows =
-      trips.map((trip) => ({
-        name: trip.name,
-
-        country:
-          getCountryFromUrl(
-            trip.url
-          ),
-
-        trip_type:
-          trip.source_type ===
-          'kurssimatka'
-            ? 'Kurssimatka'
-            : 'Pelimatka',
-
-        start_date:
-          trip.start_date,
-
-        end_date:
-          trip.end_date,
-
-        status: 'active',
-
-        url: trip.url,
-
-        source_key:
-          trip.source_key,
-
-        source_type:
-          trip.source_type,
-
-        source_url:
-          trip.url,
-
-        last_seen_at: now,
-
-        last_synced_at: now,
-
-        is_missing_from_source:
-          false,
-
-        price_from:
-          trip.price_from ?? null,
-      }))
-
-    const {
-      error: upsertError,
-    } = await supabase
-      .from('trips')
-      .upsert(
-        databaseRows,
-        {
-          onConflict:
-            'source_key',
-        }
-      )
-
-    if (upsertError) {
-      throw new Error(
-        `Matkojen tallennus epäonnistui: ${upsertError.message}`
-      )
+    if (!match) { skipped++; continue } // Never invent a destination from promotional copy.
+    const destination = (destinations || []).find(d => d.id === match.destination_id)
+    const patch = {
+      name: destination?.name || match.name,
+      last_seen_at: now,
+      last_synced_at: now,
+      is_missing_from_source: false,
+      source_url: trip.url,
+      url: trip.url,
+      ...(trip.price_from != null ? { price_from: trip.price_from } : {}),
     }
-
-    const {
-      data: refreshedData,
-      error: refreshedError,
-    } = await supabase
-      .from('trips')
-      .select(
-        'id, name, country, start_date, end_date, url, source_url, source_key, source_type'
-      )
-
-    if (refreshedError) {
-      throw new Error(
-        `Matkojen yhdistämistietojen haku epäonnistui: ${refreshedError.message}`
-      )
-    }
-
-    const mergeResult =
-      await mergeExistingDuplicates(
-        (refreshedData ||
-          []) as ExistingTrip[],
-        trips
-      )
-
-    const missingIds =
-      trackedExistingTrips
-        .filter((trip) => {
-          return (
-            trip.source_key &&
-            !currentKeySet.has(
-              trip.source_key
-            ) &&
-            !mergeResult.merged_trip_ids.has(
-              trip.id
-            )
-          )
-        })
-        .map(
-          (trip) =>
-            trip.id
-        )
-
-    if (
-      missingIds.length > 0
-    ) {
-      const {
-        error: missingError,
-      } = await supabase
-        .from('trips')
-        .update({
-          status: 'inactive',
-
-          is_missing_from_source:
-            true,
-
-          last_synced_at:
-            now,
-        })
-        .in(
-          'id',
-          missingIds
-        )
-
-      if (missingError) {
-        throw new Error(
-          `Kadonneiden matkojen merkintä epäonnistui: ${missingError.message}`
-        )
-      }
-    }
-
-  return {
-    added_count:
-      addedCount,
-
-    updated_count:
-      updatedCount,
-
-    missing_count:
-      missingIds.length,
-
-    merged_count:
-      mergeResult.merged_count,
-
-    merge_skipped_count:
-      mergeResult.merge_skipped_count,
+    const { error: updateError } = await supabase.from('trips').update(patch).eq('id', match.id)
+    if (updateError) throw new Error(updateError.message)
+    updated++
   }
+  return { added_count: added, updated_count: updated, missing_count: 0, merged_count: 0, merge_skipped_count: skipped }
 }
 
 export async function GET(
