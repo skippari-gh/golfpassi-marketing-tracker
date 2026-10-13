@@ -1682,7 +1682,42 @@ async function saveTripsToSupabase(trips: ScrapedTrip[]) {
       const candidates = existing.filter(t => t.start_date === trip.start_date && t.end_date === trip.end_date && (t.source_url === trip.url || t.url === trip.url))
       if (candidates.length === 1) match = candidates[0]
     }
-    if (!match) { skipped++; continue } // Never invent a destination from promotional copy.
+    if (!match) {
+      const normalized = normalizeTripIdentityText(trip.name)
+      const canonicalCandidates = (destinations || []).filter(d =>
+        normalizeTripIdentityText(d.country) === normalizeTripIdentityText(country) &&
+        (normalizeTripIdentityText(d.name) === normalized ||
+         getTripNameSimilarity(d.name, trip.name) >= 95)
+      )
+      const sameUrlTrips = existing.filter(t =>
+        (t.url === trip.url || t.source_url === trip.url) &&
+        t.destination_id && normalizeTripIdentityText(t.country) === normalizeTripIdentityText(country))
+      const destinationIds = new Set([
+        ...canonicalCandidates.map(d => d.id),
+        ...sameUrlTrips.map(t => t.destination_id),
+      ])
+      if (destinationIds.size !== 1) { skipped++; continue }
+      const destinationId = [...destinationIds][0]
+      const canonical = (destinations || []).find(d => d.id === destinationId)
+      if (!canonical) { skipped++; continue }
+      const collision = existing.some(t =>
+        t.destination_id === destinationId &&
+        t.start_date === trip.start_date && t.end_date === trip.end_date &&
+        (t.source_key === trip.source_key || t.url === trip.url || t.source_url === trip.url))
+      if (collision) { skipped++; continue }
+      const { error: insertError } = await supabase.from('trips').insert({
+        name: canonical.name, country, trip_type: trip.source_type === 'kurssimatka' ? 'Kurssimatka' : 'Pelimatka',
+        start_date: trip.start_date, end_date: trip.end_date, status: 'active',
+        url: trip.url, source_url: trip.url, source_key: trip.source_key,
+        source_type: trip.source_type, destination_id: destinationId,
+        product_category: trip.source_type === 'kurssimatka' ? 'opetusmatka' : 'pelimatka',
+        last_seen_at: now, last_synced_at: now, is_missing_from_source: false,
+        price_from: trip.price_from ?? null,
+      })
+      if (insertError) throw new Error(insertError.message)
+      added++
+      continue
+    }
     const destination = (destinations || []).find(d => d.id === match.destination_id)
     const patch = {
       name: destination?.name || match.name,
