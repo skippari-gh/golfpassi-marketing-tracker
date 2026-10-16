@@ -13,6 +13,7 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
  const [measured,setMeasured]=useState<MarketingInsight[]|null>(null)
  const [destinations,setDestinations]=useState<DestinationSeoGroup[]>([])
  const [daily,setDaily]=useState<SearchDay[]>([])
+ const [previousDaily,setPreviousDaily]=useState<SearchDay[]>([])
  const [fetching,setFetching]=useState(false)
  const [error,setError]=useState('')
  const [period,setPeriod]=useState('')
@@ -32,9 +33,10 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
    const dateRange=String(report.startDate)+'–'+String(report.endDate)
    setPeriod(dateRange)
    setDaily(Array.isArray(report.daily)?report.daily:[])
+   setPreviousDaily(Array.isArray(report.previousDaily)?report.previousDaily:[])
    setDestinations(Array.isArray(report.destinationGroups)?report.destinationGroups:[])
    setMeasured((report.opportunities as MeasuredSeoOpportunity[]).map(x=>seoOpportunityToInsight(x,dateRange,String(report.property))))
-  }catch(e){setMeasured(null);setDestinations([]);setDaily([]);setError(e instanceof Error?e.message:'Tietojen haku epäonnistui.')}
+  }catch(e){setMeasured(null);setDestinations([]);setDaily([]);setPreviousDaily([]);setError(e instanceof Error?e.message:'Tietojen haku epäonnistui.')}
   finally{setFetching(false)}
  }
  return <div>
@@ -51,7 +53,7 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
    {measured&&<p role="status" style={{fontSize:14,color:'#355d74'}}>✓ Tiedot haettu · Google Search Console · {period} · {measured.length} tarkistettavaa havaintoa. Tämä ei mittaa suoraan myyntivaikutusta.</p>}
    <div id="markkinatutka-tulokset" style={{borderTop:'1px solid #d5e6ef',marginTop:22,paddingTop:18}}>
      <strong style={{color:'#003c70',fontSize:17}}>{measured===null?'Tulokset näkyvät tässä haun jälkeen':'Haun tulokset ja suositukset'}</strong>
-     {measured!==null&&<SearchTrends daily={daily}/>}
+     {measured!==null&&<SearchTrends daily={daily} previousDaily={previousDaily}/>}
      {measured===null&&<p style={{color:'#637b8f',margin:'8px 0 0',fontSize:14}}>Hakua ei ole vielä tehty. Alla on erikseen merkittyjä malliesimerkkejä, jotta näet millaisia suosituksia palvelu tarjoaa.</p>}
 
   {view==='workbench'? <>{measured!==null&&<DestinationInsights destinations={destinations} detailed/>}{measured!==null&&<MeasuredInsights insights={measured} detailed/>}<details open={measured===null} style={{marginTop:20}}><summary style={{color:'#003c70',fontWeight:700,cursor:'pointer'}}>Työpöydän malliesimerkit ja työkalut</summary><p style={{fontSize:13}}>Seuraavat esimerkit eivät perustu mittauksiin.</p>{professional}</details></> :
@@ -122,28 +124,33 @@ function DestinationInsights({destinations,detailed=false}:{destinations:Destina
  </section>
 }
 
-function SearchTrends({daily}:{daily:SearchDay[]}){
+function SearchTrends({daily,previousDaily}:{daily:SearchDay[];previousDaily:SearchDay[]}){
  if(!daily.length)return <p style={{fontSize:14,color:'#667e8d'}}>Päiväkohtaisia mittaustietoja ei löytynyt tältä jaksolta.</p>
  const fmt=(v:number)=>Math.round(v).toLocaleString('fi-FI')
  const totalClicks=daily.reduce((a,d)=>a+d.clicks,0)
  const totalImpressions=daily.reduce((a,d)=>a+d.impressions,0)
+ const previousClicks=previousDaily.reduce((a,d)=>a+d.clicks,0)
+ const previousImpressions=previousDaily.reduce((a,d)=>a+d.impressions,0)
+ const complete=daily.length===28&&previousDaily.length===28
+ const delta=(now:number,before:number)=>!complete?'Vertailu ei ole saatavilla':before===0?'Ei vertailupohjaa':(now>=before?'+':'')+((now-before)/before*100).toLocaleString('fi-FI',{maximumFractionDigits:1})+' % edelliseen 28 päivään'
  return <section aria-label="Hakuliikenteen kehitys" style={{margin:'18px 0'}}>
   <h3 style={{fontSize:21,color:'#003c70',margin:'0 0 12px'}}>Hakunäkyvyyden kehitys</h3>
   <p style={{fontSize:13,color:'#61798a',margin:'0 0 15px'}}>Google Search Console · koko sivuston päiväkohtaiset mittaukset · {daily[0].date}–{daily[daily.length-1].date}</p>
   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,340px),1fr))',gap:16}}>
-   <TrendPlot data={daily} field="clicks" label="Klikkaukset" total={fmt(totalClicks)} color="#003c70"/>
-   <TrendPlot data={daily} field="impressions" label="Näyttökerrat" total={fmt(totalImpressions)} color="#ff8200"/>
+   <TrendPlot data={daily} field="clicks" label="Klikkaukset" total={fmt(totalClicks)} change={delta(totalClicks,previousClicks)} color="#003c70"/>
+   <TrendPlot data={daily} field="impressions" label="Näyttökerrat" total={fmt(totalImpressions)} change={delta(totalImpressions,previousImpressions)} color="#ff8200"/>
   </div>
-  <p style={{fontSize:12,color:'#61798a',marginTop:12}}>Kuvaajat eivät kuvaa myyntiä tai ennustetta. Viimeisimmät keskeneräiset hakupäivät on rajattu pois.</p>
+  <p style={{fontSize:12,color:'#61798a',marginTop:12}}>Vertailu näytetään vain, kun molemmilta 28 päivän jaksoilta on tiedot kaikilta päiviltä. Kuvaajat eivät kuvaa myyntiä tai ennustetta. Viimeisimmät keskeneräiset hakupäivät on rajattu pois.</p>
  </section>
 }
-function TrendPlot({data,field,label,total,color}:{data:SearchDay[];field:'clicks'|'impressions';label:string;total:string;color:string}){
+function TrendPlot({data,field,label,total,change,color}:{data:SearchDay[];field:'clicks'|'impressions';label:string;total:string;change:string;color:string}){
  const width=360,height=132,pad=9
  const max=Math.max(1,...data.map(d=>d[field]))
  const points=data.map((d,i)=>`${pad+(i*(width-pad*2)/Math.max(1,data.length-1)).toFixed(1)},${(height-pad-d[field]/max*(height-pad*2)).toFixed(1)}`).join(' ')
  return <div style={{border:'1px solid #d9e6ef',borderRadius:12,padding:16,background:'#f9fcfe'}}>
   <span style={{fontSize:13,color:'#527089',fontWeight:700}}>{label}</span>
-  <strong style={{display:'block',fontSize:27,color:'#003c70',margin:'3px 0 10px'}}>{total}</strong>
+  <strong style={{display:'block',fontSize:27,color:'#003c70',margin:'3px 0 3px'}}>{total}</strong>
+  <span style={{display:'block',fontSize:13,color:'#536f82',marginBottom:10}}>{change}</span>
   <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label+' päivittäin, '+data.length+' mittauspäivää'} style={{display:'block',width:'100%',height:'auto'}}>
    <line x1={pad} x2={width-pad} y1={height-pad} y2={height-pad} stroke="#c7dce9"/>
    <polyline points={points} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
