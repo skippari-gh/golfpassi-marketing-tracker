@@ -1,3 +1,4 @@
+import InsightCard from '../InsightCard'
 import Link from 'next/link'
 
 export const dynamic = 'force-static'
@@ -35,13 +36,16 @@ export default function CompetitorPreview() {
     </section>
     <h2 style={{ marginTop: 32 }}>Mallihavainnot ja ehdotetut toimet</h2>
     <section style={{ display: 'grid', gap: 12 }}>
-      {signals.map(item => <article key={item.title} style={{ padding: 20, border: '1px solid #d7e4ec', borderRadius: 14 }}>
-        <small>{item.category} · {item.source} · {item.strength}</small>
-        <h3 style={{ margin: '8px 0' }}>{item.title}</h3>
-        <p><strong>Miksi tärkeä:</strong> {item.why}</p>
-        <p><strong>Ehdotus:</strong> {item.action}</p>
-        <p style={{ fontSize: 13, color: '#55758a' }}>Todisteen tila: {item.evidence}</p>
-      </article>)}
+      {signals.map(item => <InsightCard key={item.title} insight={{
+        title: item.title,
+        analysis: item.why,
+        action: item.action,
+        rationale: 'Kilpailijan ' + item.category.toLowerCase() + ' voi vaikuttaa siihen, miten Golfpassin tarjonta erottuu. Tarkistus tarvitaan ennen johtopäätöksiä.',
+        caveat: 'Tämä on havainnollistava tilanne, ei automaattisesti havaittu kilpailijan muutos.',
+        source: item.source + ' – ei tarkistettua yksittäistä lähdeosoitetta',
+        confidence: 'Ei vahvistettu (esimerkki)',
+        details: <p>Havainnon tila: {item.evidence}. Ennen oikean havainnon julkaisemista tallennetaan alkuperäinen URL, muutoksen ajankohta sekä ennen–jälkeen-vertailu.</p>,
+      }} />)}
     </section>
     <h2>Automaattiseurannan hyväksymiskriteerit</h2>
     <p>Jokainen todellinen havainto edellyttää lähde-URL:n, havaitsemisajan, muutoksen vanhan ja uuden tilan sekä lähteeseen sidotun luotettavuusarvion. Hintavertailu edellyttää samanpituisia matkoja ja sisällön erittelyä. Mitään mainosta, julkaisua tai sähköpostia ei tehdä automaattisesti.</p>
