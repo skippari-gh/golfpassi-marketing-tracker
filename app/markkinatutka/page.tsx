@@ -80,6 +80,7 @@ export default function MarketIntelligencePreview() {
           <h2 style={{ color:C.navy, fontSize:21, margin:'0 0 10px' }}>Havainnot ja työkalut</h2>
           <p style={{ fontSize:14, lineHeight:1.55, color:C.muted }}>Kaksi ensimmäistä analyysialuetta ovat käytettävissä esikatseluna.</p>
           <Link href="/markkinatutka/seo" style={{ display:'block', color:C.navy, padding:'14px 0', borderBottom:'1px solid '+C.border, fontWeight:700 }}>↗ SEO-mahdollisuudet <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Hakukyselyt</span></Link>
+          <Link href="/markkinatutka/muutokset" style={{ display:'block', color:C.navy, padding:'14px 0', borderBottom:'1px solid '+C.border, fontWeight:700 }}>↗ Muutosten hyväksyntä <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Esikatselu</span></Link>
           <Link href="/markkinatutka/kilpailijat" style={{ display:'block', color:C.navy, padding:'14px 0', fontWeight:700 }}>↗ Kilpailijaseuranta <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Tarjonta</span></Link>
         </section>
         <section style={{ border:'1px solid '+C.border, borderRadius:18, padding:24 }}>
