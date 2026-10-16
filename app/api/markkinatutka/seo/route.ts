@@ -33,7 +33,9 @@ export async function GET(request: Request) {
     }, { headers })
   } catch (error) {
     // Do not expose upstream response bodies, tokens or identities.
-    console.error('Search Console query failed', error instanceof Error ? error.name : 'unknown')
+    const message = error instanceof Error ? error.message : ''
+    const safeReason = /^Search Console (authorization failed|data request failed) \(\d{3}\)$/.test(message) ? message : /service account is not configured/.test(message) ? 'Service account is not configured' : /Invalid key|DECODER routines|bad decrypt|PEM routines/.test(message) ? 'Service account private key is invalid' : /JSON/.test(message) ? 'Service account JSON is invalid' : 'Unknown Search Console integration failure'
+    console.error('Search Console query failed:', safeReason)
     return Response.json({ error: 'Hakutietojen nouto epäonnistui. Tarkista palvelutilin oikeudet ja määritykset.' }, { status: 502, headers })
   }
 }
