@@ -29,6 +29,8 @@ export default function SeoPreview() {
       <strong>ESIMERKKIDATA – EI OIKEITA GOLFPASSIN HAKUTULOKSIA.</strong>
       <p style={{ marginBottom: 0 }}>Search Console -tietojen käyttö odottaa palvelinpuolen tunnistautumista ja yhteyden testausta. Sivulla ei tehdä Search Console -API-kutsuja.</p>
     </div>
+    <div id="oikea-data"><ProtectedSeoReport /></div>
+    <p style={{fontSize:13,color:"#637b8f"}}>Alla olevat sisältöehdotukset ja hakusana-analyysit ovat malliesimerkkejä, eivät oikeaa Search Console -dataa.</p>
     <section aria-label="Konkreettinen SEO-tekstiehdotus" style={{border:'1px solid #bfd9e8',background:'#f5faff',padding:'clamp(18px,3vw,26px)',borderRadius:16,margin:'20px 0 28px',color:'#153d5a'}}>
       <small style={{letterSpacing:1.2,fontWeight:700,color:'#527a93'}}>SISÄLTÖEHDOTUS · EI JULKAISTU</small>
       <h2 style={{color:'#003c70',fontSize:25,margin:'10px 0'}}>Näin Portugalin golfmatkojen hakutulosta ja sivua voisi parantaa</h2>
@@ -52,7 +54,6 @@ export default function SeoPreview() {
         <p style={{lineHeight:1.65}}>Mittaa muutoksen jälkeen samoilla hakukyselyillä näyttökerrat, klikkaukset, klikkausosuus ja mahdollisuuksien mukaan matkakyselyt. Vertaa vastaaviin ajanjaksoihin ja huomioi kausivaihtelu. Parannusta ei voi luvata etukäteen.</p>
       </details>
     </section>
-    <ProtectedSeoReport />
     <section aria-label="Hakutermien analyysi" style={{ display: 'grid', gap: 15 }}>
       {opportunities.map(row => <InsightCard key={row.query + row.page} insight={{
         title: 'Hakusana ”' + row.query + '” kannattaa tarkistaa',
