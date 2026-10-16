@@ -39,7 +39,7 @@ export default function MarketIntelligencePreview() {
     <section style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(310px,1fr))', gap:24, marginTop:35, alignItems:'start' }}>
       <div>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
-          <h2 style={{ fontSize:24, color:C.navy, margin:'0 0 7px' }}>Tärkeimmät seuraavat toimet</h2>
+          <h2 style={{ fontSize:24, color:C.navy, margin:'0 0 7px' }}>Tärkeimmät seuraavat toimet</h2><p><Link href="/markkinatutka/tehtavat" style={{fontSize:13,fontWeight:700,color:C.navy}}>Avaa hyväksyntätyönkulun esikatselu →</Link></p>
         </div>
         <p style={{ margin:'0 0 17px', color:C.muted, fontSize:14 }}>Suositus → arviointi → toteutus → mittaus</p>
         <div style={{ display:'grid', gap:12 }}>
