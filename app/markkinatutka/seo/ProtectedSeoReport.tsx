@@ -17,9 +17,12 @@ function browserClient() {
 }
 const client: SupabaseClient | null = browserClient()
 const nf = new Intl.NumberFormat('fi-FI')
+const AUTH_PREVIEW_ORIGIN = 'https://golfpassi-marketing-tracker-nbh6-m3xaj1mgl.vercel.app'
 
 export default function ProtectedSeoReport() {
   const [email, setEmail] = useState('')
+  const [isApprovedOrigin,setApprovedOrigin]=useState(false)
+  const [sending,setSending]=useState(false)
   const [isSignedIn, setSignedIn] = useState(false)
   const [message, setMessage] = useState('')
   const [report, setReport] = useState<Report | null>(null)
@@ -40,6 +43,7 @@ export default function ProtectedSeoReport() {
   }
 
   useEffect(() => {
+    setApprovedOrigin(window.location.origin === AUTH_PREVIEW_ORIGIN)
     if (!client) return
     void client.auth.getSession().then(({ data }) => setSignedIn(!!data.session))
     const { data } = client.auth.onAuthStateChange((_event, session) => {
@@ -50,13 +54,24 @@ export default function ProtectedSeoReport() {
   }, [])
 
   async function sendSignInLink() {
-    if (!client) return
+    if (!client || !isApprovedOrigin || sending) return
+    setSending(true)
     setMessage('')
-    const { error } = await client.auth.signInWithOtp({
-      email: email.trim(),
-      options: { shouldCreateUser: false, emailRedirectTo: window.location.origin + '/markkinatutka/seo' },
-    })
-    setMessage(error ? 'Kirjautumislinkkiä ei voitu lähettää. Varmista, että tilisi on luotu ja kirjautuminen on sallittu.' : 'Tarkista sähköpostisi ja avaa kirjautumislinkki.')
+    try {
+      const { error } = await client.auth.signInWithOtp({
+        email: email.trim(),
+        options: { shouldCreateUser: false, emailRedirectTo: AUTH_PREVIEW_ORIGIN + '/markkinatutka/seo' },
+      })
+      if (error) {
+        if (error.status === 429 || String(error.code || '').includes('rate_limit')) {
+          setMessage('Supabasen sähköpostiraja (2 viestiä tunnissa koko projektille) on täynnä. Älä pyydä uutta linkkiä heti.')
+        } else {
+          setMessage('Kirjautumislinkin lähetys epäonnistui (virhekoodi ' + (error.status || 'tuntematon') + ').')
+        }
+      } else {
+        setMessage('Kirjautumislinkki lähetettiin. Avaa vain uusin viesti kerran.')
+      }
+    } finally { setSending(false) }
   }
 
   async function loadReport() {
@@ -85,10 +100,11 @@ export default function ProtectedSeoReport() {
     <h2>Oikea Search Console -data</h2>
     <p>Vain valtuutetuille käyttäjille. Google-data haetaan palvelimelta vasta tunnistautumisen jälkeen.</p>
     {!client && <p>Kirjautuminen ei ole määritelty.</p>}
-    {client && !isSignedIn && <form onSubmit={event => { event.preventDefault(); void sendSignInLink() }}>
+    {client && !isApprovedOrigin && <p role="status" style={{padding:16,borderRadius:10,background:'#fff3df',border:'1px solid #efc586'}}>Tämä on muuttuva kehitysversion osoite. Kirjautumislinkkiä ei voi lähettää tästä osoitteesta. <a href={AUTH_PREVIEW_ORIGIN + '/markkinatutka/seo'}>Siirry sallittuun kirjautumisosoitteeseen</a>. Supabase sallii vain kaksi kirjautumissähköpostia tunnissa.</p>}
+    {client && isApprovedOrigin && !isSignedIn && <form onSubmit={event => { event.preventDefault(); void sendSignInLink() }}>
       <label htmlFor="mt-email">Työsähköposti</label>
       <input id="mt-email" type="email" value={email} onChange={event => setEmail(event.target.value)} required style={{ display: 'block', padding: 10, margin: '8px 0', width: 'min(100%,360px)' }} />
-      <button type="submit" style={{ padding: '10px 16px' }}>Lähetä kirjautumislinkki</button>
+      <button type="submit" disabled={sending} style={{ padding: '10px 16px' }}>{sending ? 'Lähetetään…' : 'Lähetä kirjautumislinkki'}</button>
     </form>}
     {client && isSignedIn && <div>
       <button type="button" disabled={loading} onClick={() => void loadReport()} style={{ padding: '10px 16px', marginRight: 12 }}>{loading ? 'Haetaan…' : 'Hae viimeiset 28 päivää'}</button>
