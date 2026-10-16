@@ -1,14 +1,11 @@
+import { demoInsights } from './demo-insights'
 import MarkkinatutkaViewSwitch from './MarkkinatutkaViewSwitch'
 import Link from 'next/link'
 export const dynamic = 'force-static'
 
 // Design-only preview: all figures and task examples are fictional.
 // Nothing on this page writes to Marketing Tracker or accesses analytics.
-const tasks = [
-  { id:'01', channel:'SEO', priority:'Korkea', title:'Portugalin golfmatkojen hakutulosta kannattaa tarkistaa', analysis:'Esimerkkitilanteessa sivu näkyisi Google-haussa usein, mutta vain harva näkijä siirtyisi sivulle.', action:'Vertaa hakutuloksen otsikkoa ja tekstiä siihen, mitä Portugalin golfmatkoja etsivä haluaa tietää.', reason:'Jos sivu saa jo näkyvyyttä, hakutuloksen kiinnostavuuden parantaminen voi lisätä kävijöitä. Sijoitus ja hakukysely pitää silti tarkistaa ennen muutosta.', detail:'Tarvitaan Search Consolen hakukyselyt, näyttökerrat, klikkaukset, keskimääräinen sijoitus ja ajanjakson vertailu. Klikkausosuus (CTR) tarkoittaa näyttökertojen osuutta, joka johti klikkaukseen.', state:'Odottaa arviota', href:'/markkinatutka/seo' },
-  { id:'02', channel:'Kilpailijat', priority:'Keskitaso', title:'Kevätlähtöjen kilpailutilanne kannattaa vertailla', analysis:'Esimerkkitilanteessa kilpailevien matkanjärjestäjien tarjoukset voisivat osua samoille lähtöviikoille.', action:'Tarkista lähtöpäivät, pakettien sisältö ja lopulliset hinnat sekä Golfpassin erottuvat vahvuudet.', reason:'Pelkkä alkaen-hinta ei kerro, ovatko matkat vertailukelpoisia. Esimerkiksi lennot, yöpymiset ja green feet voivat erota.', detail:'Oikea johtopäätös edellyttää kilpailijan alkuperäistä tarjousosoitetta, havaintopäivää sekä ennen–jälkeen-vertailua. Automaattinen kilpailijakeruu ei ole vielä käytössä.', state:'Tutkittava', href:'/markkinatutka/kilpailijat' },
-  { id:'03', channel:'Vaikutus', priority:'Keskitaso', title:'Uutiskirjeen hyötyä kannattaa arvioida myös matkakyselyillä', analysis:'Esimerkkitilanteessa uutiskirje voisi tuoda paljon sivustokävijöitä, mutta niiden kaupallinen vaikutus jäisi epäselväksi.', action:'Vertaa uutiskirjeestä tulleita käyntejä ja niiden kautta syntyneitä matkakyselyitä, jos seuranta on käytettävissä.', reason:'Avaus- ja klikkausluvut kertovat kiinnostuksesta, mutta eivät yksin siitä, syntyykö matkakyselyitä.', detail:'Tarvitaan kampanjalinkkien tunnisteet, GA4:n käynnit ja luotettavasti määritellyt matkakyselytapahtumat. Esimerkistä ei ole oikeita mittauslukuja.', state:'Mittaus odottaa', href:'/markkinatutka/tehtavat' },
-]
+
 const metrics = [
   { value:'3', label:'Ehdotusta arvioitavaksi', detail:'Mallitehtäviä' },
   { value:'2', label:'Seurannan työaluetta', detail:'SEO ja kilpailijat' },
@@ -45,7 +42,7 @@ export default function MarketIntelligencePreview() {
         </div>
         <p style={{ margin:'0 0 17px', color:C.muted, fontSize:14 }}>Suositus → arviointi → toteutus → mittaus</p>
         <div style={{ display:'grid', gap:12 }}>
-          {tasks.map(t=><article key={t.id} style={{ border:'1px solid '+C.border, borderRadius:16, padding:20, background:'white', boxShadow:'0 3px 14px rgba(0,60,112,.045)' }}>
+          {demoInsights.map(t=><article key={t.id} style={{ border:'1px solid '+C.border, borderRadius:16, padding:20, background:'white', boxShadow:'0 3px 14px rgba(0,60,112,.045)' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, flexWrap:'wrap' }}>
               <small style={{ color:C.muted, fontWeight:700, letterSpacing:1 }}>{t.id} · {t.channel}</small>
               <small style={{ background:t.priority==='Korkea'?'#fff0df':'#eef4f8', color:C.navy, padding:'5px 9px', borderRadius:8 }}>{t.priority} prioriteetti</small>
