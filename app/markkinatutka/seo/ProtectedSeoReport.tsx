@@ -1,0 +1,216 @@
+'use client'
+
+import InsightCard from '../InsightCard'
+import { suggestSeoCopy } from '../../../lib/seo-copy-suggestions'
+import { seoOpportunityToInsight } from '../../../lib/marketing-insight-model'
+
+import { useEffect, useState } from 'react'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+
+type Opportunity = { query: string; page: string; clicks: number; impressions: number; ctr: number; position: number; reason: string }
+type DestinationGroup = { name:string;clicks:number;impressions:number;queryCount:number;pages:string[];examples:string[];recommendation:string;caution:string }
+type Report = { property: string; startDate: string; endDate: string; fetchedRows: number; opportunities: Opportunity[]; destinationGroups?:DestinationGroup[]; retrievedAt: string }
+
+function browserClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return null
+  return createClient(url, key, { auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true } })
+}
+const client: SupabaseClient | null = browserClient()
+const nf = new Intl.NumberFormat('fi-FI')
+const AUTH_PREVIEW_ORIGIN = 'https://golfpassi-marketing-tracker-nb-git-97f6ca-skippari-ghs-projects.vercel.app'
+
+export default function ProtectedSeoReport() {
+  const [email, setEmail] = useState('')
+  const [isApprovedOrigin,setApprovedOrigin]=useState(false)
+  const [sending,setSending]=useState(false)
+  const [isSignedIn, setSignedIn] = useState(false)
+  const [message, setMessage] = useState('')
+  const [report, setReport] = useState<Report | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [comparisons,setComparisons]=useState<Record<string, { snapshot?:{title:string|null;description:string|null;h1:string[];h2:string[];excerpts:string[];fetchedAt:string};analysis?:{title:string;description:string;heading:string;note:string};error?:string;loading?:boolean;changePlan?:Array<{field:string;before:string;after:string;reason:string}>;planWarning?:string|null;quality?:{status:string;summary:string;checks:Array<{label:string;ok:boolean;explanation:string}>}}>>({})
+  async function inspectPage(item:Opportunity) {
+    const id=item.query+'|'+item.page
+    setComparisons(old=>({...old,[id]:{loading:true}}))
+    try {
+      if(!client)throw new Error('Kirjautuminen puuttuu')
+      const {data:{session}}=await client.auth.getSession()
+      if(!session)throw new Error('Kirjaudu ensin sisään')
+      const response=await fetch('/api/markkinatutka/page-analysis',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({url:item.page,query:item.query,ctr:item.ctr,position:item.position})})
+      const data=await response.json()
+      if(!response.ok)throw new Error(data.error||'Analyysi epäonnistui')
+      setComparisons(old=>({...old,[id]:{snapshot:data.snapshot,analysis:data.analysis,changePlan:data.changePlan,planWarning:data.planWarning,quality:data.quality}}))
+    }catch(e){setComparisons(old=>({...old,[id]:{error:e instanceof Error?e.message:'Analyysi epäonnistui'}}))}
+  }
+
+  useEffect(() => {
+    setApprovedOrigin(window.location.origin === AUTH_PREVIEW_ORIGIN)
+    if (!client) return
+    void client.auth.getSession().then(({ data }) => setSignedIn(!!data.session))
+    const { data } = client.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(!!session)
+      if (!session) setReport(null)
+    })
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  async function sendSignInLink() {
+    if (!client || !isApprovedOrigin || sending) return
+    setSending(true)
+    setMessage('')
+    try {
+      const { error } = await client.auth.signInWithOtp({
+        email: email.trim(),
+        options: { shouldCreateUser: false, emailRedirectTo: AUTH_PREVIEW_ORIGIN + '/markkinatutka/seo' },
+      })
+      if (error) {
+        if (error.status === 429 || String(error.code || '').includes('rate_limit')) {
+          setMessage('Supabasen sähköpostiraja (2 viestiä tunnissa koko projektille) on täynnä. Älä pyydä uutta linkkiä heti.')
+        } else {
+          setMessage('Kirjautumislinkin lähetys epäonnistui (virhekoodi ' + (error.status || 'tuntematon') + ').')
+        }
+      } else {
+        setMessage('Kirjautumislinkki lähetettiin. Avaa vain uusin viesti kerran.')
+      }
+    } finally { setSending(false) }
+  }
+
+  async function loadReport() {
+    if (!client) return
+    setLoading(true)
+    setMessage('')
+    setReport(null)
+    try {
+      const { data: { session } } = await client.auth.getSession()
+      if (!session) throw new Error('Kirjaudu ensin sisään.')
+      const response = await fetch('/api/markkinatutka/seo', {
+        headers: { Authorization: 'Bearer ' + session.access_token },
+        cache: 'no-store',
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(String(data.error || 'Haku epäonnistui'))
+      setReport(data as Report)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Tietojen haku epäonnistui')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return <section style={{ marginTop: 26, border: '1px solid #cbdde7', padding: 22, borderRadius: 14 }}>
+    <h2>Oikea Search Console -data</h2>
+    <p>Vain valtuutetuille käyttäjille. Google-data haetaan palvelimelta vasta tunnistautumisen jälkeen.</p>
+    {!client && <p>Kirjautuminen ei ole määritelty.</p>}
+    {client && !isApprovedOrigin && <p role="status" style={{padding:16,borderRadius:10,background:'#fff3df',border:'1px solid #efc586'}}>Tämä on vaihtuva kehitysversion osoite. Kirjautuminen tehdään pysyvässä testiosoitteessa, joka pitää lisätä Supabasen Redirect URLs -luetteloon kerran. <a href={AUTH_PREVIEW_ORIGIN + '/markkinatutka/seo'}>Siirry sallittuun kirjautumisosoitteeseen</a>. Supabase sallii vain kaksi kirjautumissähköpostia tunnissa.</p>}
+    {client && isApprovedOrigin && !isSignedIn && <form onSubmit={event => { event.preventDefault(); void sendSignInLink() }}>
+      <label htmlFor="mt-email">Työsähköposti</label>
+      <input id="mt-email" type="email" value={email} onChange={event => setEmail(event.target.value)} required style={{ display: 'block', padding: 10, margin: '8px 0', width: 'min(100%,360px)' }} />
+      <button type="submit" disabled={sending} style={{ padding: '10px 16px' }}>{sending ? 'Lähetetään…' : 'Lähetä kirjautumislinkki'}</button>
+    </form>}
+    {client && isSignedIn && <div>
+      <button type="button" disabled={loading} onClick={() => void loadReport()} style={{ padding: '10px 16px', marginRight: 12 }}>{loading ? 'Haetaan…' : 'Hae viimeiset 28 päivää'}</button>
+      <button type="button" onClick={() => void client.auth.signOut()}>Kirjaudu ulos</button>
+    </div>}
+    {message && <p role="status">{message}</p>}
+    {report && <div>
+      <p><strong>Lähde:</strong> {report.property} · {report.startDate}–{report.endDate} · {nf.format(report.fetchedRows)} kysely-sivuriviä</p>
+      {!!report.destinationGroups?.length && <section aria-label="Kohdekohtaiset SEO-havainnot" style={{margin:'18px 0 26px'}}>
+        <h3 style={{color:'#003c70',fontSize:23}}>Mitä matkakohteissa kannattaa parantaa?</h3>
+        <p style={{fontSize:14}}>Yhteenveto oikeista hakuhavainnoista. Tarkemmat yksittäiset haut näkyvät tämän osion jälkeen.</p>
+        <div style={{display:'grid',gap:12}}>
+        {report.destinationGroups.map(group=><article key={group.name} style={{padding:18,border:'1px solid #cbdde7',borderRadius:12,background:'#fff'}}>
+          <h4 style={{fontSize:19,margin:'0 0 10px'}}>{group.name}</h4>
+          <p><strong>Mitä havaittiin?</strong> {group.queryCount} tarkistettavaa hakukysely–sivu-havaintoa. Esimerkiksi: {group.examples.join(', ')}.</p>
+          <p style={{background:'#fff8ef',borderLeft:'4px solid #ff8200',padding:12,borderRadius:7}}><strong>Mitä kannattaa tehdä?</strong> {group.recommendation}</p>
+          <details><summary style={{cursor:'pointer',fontWeight:700}}>Näytä lukujen rajaukset ja lähteet</summary>
+          <p>Havaintoriveissä {nf.format(group.impressions)} näyttökertaa ja {nf.format(group.clicks)} klikkausta. {group.pages.length} eri sivua.</p>
+          <p>{group.caution}</p>
+          <ul>{group.pages.map(page=><li key={page}>{page}</li>)}</ul>
+          </details>
+        </article>)}
+        </div>
+      </section>}
+      {report.opportunities.length === 0 && <p>Tarkistettavia mahdollisuuksia ei löytynyt valitulla sääntöjoukolla.</p>}
+      <div style={{display:'grid',gap:14}}>
+        {report.opportunities.map(item => <InsightCard key={item.query + item.page} insight={{
+          title: seoOpportunityToInsight(item,report.startDate+'–'+report.endDate,report.property).title,
+          analysis: seoOpportunityToInsight(item,report.startDate+'–'+report.endDate,report.property).analysis,
+          action: seoOpportunityToInsight(item,report.startDate+'–'+report.endDate,report.property).action,
+          rationale: seoOpportunityToInsight(item,report.startDate+'–'+report.endDate,report.property).reason,
+          caveat: 'Mittaukset ovat oikeita vain onnistuneen Search Console -haun jälkeen. Sisältömuutoksen vaikutusta ei vielä tunneta.',
+          source: 'Google Search Console: '+report.property+' · '+report.startDate+'–'+report.endDate,
+          confidence: 'Mitattu hakudata, alustava tulkinta',
+          details: <><button type="button" disabled={!!comparisons[item.query+'|'+item.page]?.loading} onClick={()=>void inspectPage(item)} style={{padding:'10px 14px',background:'#003c70',color:'white',border:0,borderRadius:8,cursor:'pointer'}}>{comparisons[item.query+'|'+item.page]?.loading?'Luetaan sivua…':'Lue nykyinen sivu ja vertaa ehdotukseen'}</button>
+          {comparisons[item.query+'|'+item.page]?.error&&<p role="alert">{comparisons[item.query+'|'+item.page]?.error}</p>}
+          <SeoTextComparison snapshot={comparisons[item.query+'|'+item.page]?.snapshot} item={item} />
+          {comparisons[item.query+'|'+item.page]?.quality&&<section style={{margin:'14px 0',background:'#f6f9fb',padding:16,borderRadius:12,border:'1px solid #d3e3ed'}}>
+            <strong>Laadunvarmistus ennen muutosta</strong>
+            <p>{comparisons[item.query+'|'+item.page]?.quality?.summary}</p>
+            <ul style={{paddingLeft:19}}>
+              {comparisons[item.query+'|'+item.page]?.quality?.checks.map(check=><li key={check.label} style={{margin:'9px 0'}}><strong>{check.ok?'Tarkistettu: ':'Selvitettävä: '}{check.label}</strong> – {check.explanation}</li>)}
+            </ul>
+          </section>}
+          {comparisons[item.query+'|'+item.page]?.planWarning&&<p role="status">Muutossuunnitelma vaatii tarkistuksen: {comparisons[item.query+'|'+item.page].planWarning}</p>}
+          {!!comparisons[item.query+'|'+item.page]?.changePlan?.length&&<section style={{background:'#f0f7fb',padding:16,borderRadius:12,margin:'12px 0'}}>
+            <strong>Muutosluonnokset tarkistettavaksi – ei julkaistu</strong>
+            {comparisons[item.query+'|'+item.page]?.changePlan?.map(change=><div key={change.field} style={{borderTop:'1px solid #cadae7',padding:'12px 0'}}>
+              <strong>{change.field}</strong>
+              <p><strong>Nykyinen:</strong> {change.before}</p>
+              <p><strong>Ehdotettu:</strong> {change.after}</p>
+              <p><strong>Miksi:</strong> {change.reason}</p>
+            </div>)}
+            <p style={{fontSize:13}}>Muutoksia ei ole hyväksytty, tallennettu eikä julkaistu. Ennen toteutusta tarvitaan käyttäjän hyväksyntä ja uusintatarkistus sivun ajantasaisesta versiosta.</p>
+          </section>}
+          {!comparisons[item.query+'|'+item.page]?.snapshot && <p style={{fontSize:13,color:'#5d7180'}}>Nykyisiä tekstejä ei ole vielä haettu. Alla näkyvä ehdotus ei perustu sivun nykyisen tekstin vertailuun.</p>}
+          <SeoCopyDraft item={item} /><p>Sivu: {item.page}</p><p>Klikkaukset: {nf.format(item.clicks)} · Näyttökerrat: {nf.format(item.impressions)} · Klikkausosuus (CTR): {(item.ctr*100).toFixed(1)} % · Keskimääräinen sijoitus: {item.position.toFixed(1)}</p><p>CTR tarkoittaa, kuinka moni näyttökerta johti klikkaukseen.</p></>,
+        }} />)}
+      </div>
+    </div>}
+  </section>
+}
+
+function SeoCopyDraft({item}:{item:Opportunity}) {
+  const draft=suggestSeoCopy(item)
+  return <section style={{background:'#f0f7fb',padding:16,borderRadius:12,margin:'12px 0'}}>
+    <h4>Automaattinen tekstiehdotus – vaatii sivun tarkistamisen</h4>
+    <p><strong>Hakujen kohdennus:</strong> {draft.relatedQueries.join(', ')}</p>
+    <p><strong>Google-otsikko:</strong> {draft.title}</p>
+    <p><strong>Metakuvaus:</strong> {draft.description}</p>
+    <p><strong>Sivun pääotsikko:</strong> {draft.heading}</p>
+    <p><strong>Ingressi:</strong> {draft.intro}</p>
+    <p><strong>Perustelu:</strong> {draft.explanation}</p>
+    <strong>Ennen hyväksyntää:</strong>
+    <ul>{draft.verification.map(v=><li key={v}>{v}</li>)}</ul>
+  </section>
+}
+
+type PageSnapshot = {title:string|null;description:string|null;h1:string[];h2:string[];excerpts:string[];fetchedAt:string}
+function SeoTextComparison({snapshot,item}:{snapshot:PageSnapshot|undefined;item:Opportunity}) {
+  if(!snapshot)return null
+  const proposal=suggestSeoCopy(item)
+  const pairs=[
+    {label:'Google-otsikko',current:snapshot.title,proposed:proposal.title},
+    {label:'Metakuvaus',current:snapshot.description,proposed:proposal.description},
+    {label:'Sivun pääotsikko (H1)',current:snapshot.h1.join(' / ')||null,proposed:proposal.heading},
+    {label:'Sivun sisältö – tekstinäyte',current:snapshot.excerpts.slice(0,3).join(' ')||null,proposed:proposal.intro},
+  ]
+  return <section style={{margin:'16px 0',border:'1px solid #c7dce9',borderRadius:14,padding:16}}>
+    <h4 style={{fontSize:18,color:'#003c70',margin:'0 0 7px'}}>Nykyinen teksti verrattuna ehdotukseen</h4>
+    <p style={{fontSize:13,color:'#526f82'}}>Nykyiset tekstit on haettu julkiselta sivulta {snapshot.fetchedAt}. Ehdotukset ovat automaattisia luonnoksia, eivät julkaistuja muutoksia.</p>
+    {pairs.map(pair=><div key={pair.label} style={{marginTop:16}}>
+      <strong style={{display:'block',marginBottom:8,color:'#003c70'}}>{pair.label}</strong>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+        <div style={{background:'#f0f4f7',padding:14,borderRadius:10}}>
+          <strong style={{display:'block',fontSize:13,marginBottom:7}}>NYKYINEN TEKSTI</strong>
+          <p style={{margin:0,whiteSpace:'pre-wrap'}}>{pair.current||'Ei löytynyt sivulta'}</p>
+        </div>
+        <div style={{background:'#fff7eb',padding:14,borderRadius:10,borderLeft:'4px solid #ff8200'}}>
+          <strong style={{display:'block',fontSize:13,marginBottom:7}}>EHDOTETTU TEKSTI</strong>
+          <p style={{margin:0,whiteSpace:'pre-wrap'}}>{pair.proposed}</p>
+        </div>
+      </div>
+    </div>)}
+    <p style={{fontSize:13,color:'#526f82'}}>Sivun sisältö -kohdassa nykyinen teksti on vain ote sivusta. Tarkista koko sisältö ennen korvaamista.</p>
+  </section>
+}

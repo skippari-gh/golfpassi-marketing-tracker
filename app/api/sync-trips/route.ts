@@ -1,7 +1,17 @@
 import * as cheerio from 'cheerio'
-import {
-  supabaseAdmin as supabase,
-} from '../../../lib/supabase-admin'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+
+// Defer privileged client initialization until an authenticated save request.
+// Preview builds must not require production secrets.
+let adminClient: SupabaseClient | null = null
+function getAdmin(): SupabaseClient {
+  if (adminClient) return adminClient
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const secret = process.env.SUPABASE_SECRET_KEY
+  if (!url || !secret) throw new Error('Privileged Supabase configuration missing')
+  adminClient = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } })
+  return adminClient
+}
 import {
   getTripNameSimilarity,
   normalizeTripIdentityText,
@@ -1388,7 +1398,7 @@ function isSaveAllowed(
 
 async function startSyncRun() {
   const { data, error } =
-    await supabase
+    await getAdmin()
       .from('trip_sync_runs')
       .insert({
         status: 'running',
@@ -1421,7 +1431,7 @@ async function finishSyncRun(
   }
 ) {
   const { error } =
-    await supabase
+    await getAdmin()
       .from('trip_sync_runs')
       .update({
         ...values,
@@ -1552,7 +1562,7 @@ async function moveTripReferences(
 
   for (const table of relatedTables) {
     const { error } =
-      await supabase
+      await getAdmin()
         .from(table)
         .update({
           trip_id: canonicalId,
@@ -1638,7 +1648,7 @@ async function mergeExistingDuplicates(
     )
 
     const { error: deleteError } =
-      await supabase
+      await getAdmin()
         .from('trips')
         .delete()
         .eq('id', existingTrip.id)
@@ -1666,11 +1676,11 @@ async function mergeExistingDuplicates(
 
 async function saveTripsToSupabase(trips: ScrapedTrip[]) {
   const now = new Date().toISOString()
-  const { data: existingData, error } = await supabase.from('trips').select('id,name,country,start_date,end_date,url,source_url,source_key,source_type,destination_id,status,price_from')
+  const { data: existingData, error } = await getAdmin().from('trips').select('id,name,country,start_date,end_date,url,source_url,source_key,source_type,destination_id,status,price_from')
   if (error) throw new Error(error.message)
   const existing = existingData || []
   const byKey = new Map(existing.filter(t => t.source_key).map(t => [t.source_key, t]))
-  const { data: destinations, error: destinationError } = await supabase.from('destinations').select('id,name,country')
+  const { data: destinations, error: destinationError } = await getAdmin().from('destinations').select('id,name,country')
   if (destinationError) throw new Error(destinationError.message)
   let added = 0
   let updated = 0
@@ -1705,7 +1715,7 @@ async function saveTripsToSupabase(trips: ScrapedTrip[]) {
         t.start_date === trip.start_date && t.end_date === trip.end_date &&
         (t.source_key === trip.source_key || t.url === trip.url || t.source_url === trip.url))
       if (collision) { skipped++; continue }
-      const { error: insertError } = await supabase.from('trips').insert({
+      const { error: insertError } = await getAdmin().from('trips').insert({
         name: canonical.name, country, trip_type: trip.source_type === 'kurssimatka' ? 'Kurssimatka' : 'Pelimatka',
         start_date: trip.start_date, end_date: trip.end_date, status: 'active',
         url: trip.url, source_url: trip.url, source_key: trip.source_key,
@@ -1728,7 +1738,7 @@ async function saveTripsToSupabase(trips: ScrapedTrip[]) {
       url: trip.url,
       ...(trip.price_from != null ? { price_from: trip.price_from } : {}),
     }
-    const { error: updateError } = await supabase.from('trips').update(patch).eq('id', match.id)
+    const { error: updateError } = await getAdmin().from('trips').update(patch).eq('id', match.id)
     if (updateError) throw new Error(updateError.message)
     updated++
   }

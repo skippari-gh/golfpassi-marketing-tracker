@@ -2082,6 +2082,10 @@ export default async function Home({
                 Analytiikka
               </Link>
 
+              <Link href="/markkinatutka">
+                Markkinatutka (beta)
+              </Link>
+
               <Link href="/sync-status">
                 Synkronointi
               </Link>
