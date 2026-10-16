@@ -113,16 +113,8 @@ export default function ProtectedSeoReport() {
           confidence: 'Sääntöpohjainen tarkistusehdotus, ei vahvistettu syy-yhteys',
           details: <><button type="button" disabled={!!comparisons[item.query+'|'+item.page]?.loading} onClick={()=>void inspectPage(item)} style={{padding:'10px 14px',background:'#003c70',color:'white',border:0,borderRadius:8,cursor:'pointer'}}>{comparisons[item.query+'|'+item.page]?.loading?'Luetaan sivua…':'Lue nykyinen sivu ja vertaa ehdotukseen'}</button>
           {comparisons[item.query+'|'+item.page]?.error&&<p role="alert">{comparisons[item.query+'|'+item.page]?.error}</p>}
-          {comparisons[item.query+'|'+item.page]?.snapshot&&<section style={{background:'#f3f8fb',borderRadius:12,padding:16,marginTop:14}}>
-            <strong>Nykyinen julkinen sivu – {comparisons[item.query+'|'+item.page].snapshot?.fetchedAt}</strong>
-            <p><strong>Nykyinen Google-otsikko:</strong> {comparisons[item.query+'|'+item.page].snapshot?.title||'Puuttuu'}</p>
-            <p><strong>Nykyinen metakuvaus:</strong> {comparisons[item.query+'|'+item.page].snapshot?.description||'Puuttuu'}</p>
-            <p><strong>Nykyinen pääotsikko:</strong> {comparisons[item.query+'|'+item.page].snapshot?.h1.join(' / ')||'Puuttuu'}</p>
-            <p><strong>Väliotsikot:</strong> {comparisons[item.query+'|'+item.page].snapshot?.h2.join(' / ')||'Ei löydetty'}</p>
-            <p><strong>Tekstinäyte:</strong> {comparisons[item.query+'|'+item.page].snapshot?.excerpts.slice(0,3).join(' ')||'Ei löydetty'}</p>
-            <p><strong>Vertailun johtopäätös:</strong> {comparisons[item.query+'|'+item.page].analysis?.title}. {comparisons[item.query+'|'+item.page].analysis?.description}. {comparisons[item.query+'|'+item.page].analysis?.heading}.</p>
-            <p>{comparisons[item.query+'|'+item.page].analysis?.note}</p>
-          </section>}
+          <SeoTextComparison snapshot={comparisons[item.query+'|'+item.page]?.snapshot} item={item} />
+          {!comparisons[item.query+'|'+item.page]?.snapshot && <p style={{fontSize:13,color:'#5d7180'}}>Nykyisiä tekstejä ei ole vielä haettu. Alla näkyvä ehdotus ei perustu sivun nykyisen tekstin vertailuun.</p>}
           <SeoCopyDraft item={item} /><p>Sivu: {item.page}</p><p>Klikkaukset: {nf.format(item.clicks)} · Näyttökerrat: {nf.format(item.impressions)} · Klikkausosuus (CTR): {(item.ctr*100).toFixed(1)} % · Keskimääräinen sijoitus: {item.position.toFixed(1)}</p><p>CTR tarkoittaa, kuinka moni näyttökerta johti klikkaukseen.</p></>,
         }} />)}
       </div>
@@ -142,5 +134,35 @@ function SeoCopyDraft({item}:{item:Opportunity}) {
     <p><strong>Perustelu:</strong> {draft.explanation}</p>
     <strong>Ennen hyväksyntää:</strong>
     <ul>{draft.verification.map(v=><li key={v}>{v}</li>)}</ul>
+  </section>
+}
+
+type PageSnapshot = {title:string|null;description:string|null;h1:string[];h2:string[];excerpts:string[];fetchedAt:string}
+function SeoTextComparison({snapshot,item}:{snapshot:PageSnapshot|undefined;item:Opportunity}) {
+  if(!snapshot)return null
+  const proposal=suggestSeoCopy(item)
+  const pairs=[
+    {label:'Google-otsikko',current:snapshot.title,proposed:proposal.title},
+    {label:'Metakuvaus',current:snapshot.description,proposed:proposal.description},
+    {label:'Sivun pääotsikko (H1)',current:snapshot.h1.join(' / ')||null,proposed:proposal.heading},
+    {label:'Sivun sisältö – tekstinäyte',current:snapshot.excerpts.slice(0,3).join(' ')||null,proposed:proposal.intro},
+  ]
+  return <section style={{margin:'16px 0',border:'1px solid #c7dce9',borderRadius:14,padding:16}}>
+    <h4 style={{fontSize:18,color:'#003c70',margin:'0 0 7px'}}>Nykyinen teksti verrattuna ehdotukseen</h4>
+    <p style={{fontSize:13,color:'#526f82'}}>Nykyiset tekstit on haettu julkiselta sivulta {snapshot.fetchedAt}. Ehdotukset ovat automaattisia luonnoksia, eivät julkaistuja muutoksia.</p>
+    {pairs.map(pair=><div key={pair.label} style={{marginTop:16}}>
+      <strong style={{display:'block',marginBottom:8,color:'#003c70'}}>{pair.label}</strong>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:12}}>
+        <div style={{background:'#f0f4f7',padding:14,borderRadius:10}}>
+          <strong style={{display:'block',fontSize:13,marginBottom:7}}>NYKYINEN TEKSTI</strong>
+          <p style={{margin:0,whiteSpace:'pre-wrap'}}>{pair.current||'Ei löytynyt sivulta'}</p>
+        </div>
+        <div style={{background:'#fff7eb',padding:14,borderRadius:10,borderLeft:'4px solid #ff8200'}}>
+          <strong style={{display:'block',fontSize:13,marginBottom:7}}>EHDOTETTU TEKSTI</strong>
+          <p style={{margin:0,whiteSpace:'pre-wrap'}}>{pair.proposed}</p>
+        </div>
+      </div>
+    </div>)}
+    <p style={{fontSize:13,color:'#526f82'}}>Sivun sisältö -kohdassa nykyinen teksti on vain ote sivusta. Tarkista koko sisältö ennen korvaamista.</p>
   </section>
 }
