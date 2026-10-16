@@ -17,7 +17,7 @@ function browserClient() {
 }
 const client: SupabaseClient | null = browserClient()
 const nf = new Intl.NumberFormat('fi-FI')
-const AUTH_PREVIEW_ORIGIN = 'https://golfpassi-marketing-tracker-nbh6-m3xaj1mgl.vercel.app'
+const AUTH_PREVIEW_ORIGIN = 'https://golfpassi-marketing-tracker-nb-git-97f6ca-skippari-ghs-projects.vercel.app'
 
 export default function ProtectedSeoReport() {
   const [email, setEmail] = useState('')
@@ -100,7 +100,7 @@ export default function ProtectedSeoReport() {
     <h2>Oikea Search Console -data</h2>
     <p>Vain valtuutetuille käyttäjille. Google-data haetaan palvelimelta vasta tunnistautumisen jälkeen.</p>
     {!client && <p>Kirjautuminen ei ole määritelty.</p>}
-    {client && !isApprovedOrigin && <p role="status" style={{padding:16,borderRadius:10,background:'#fff3df',border:'1px solid #efc586'}}>Tämä on muuttuva kehitysversion osoite. Kirjautumislinkkiä ei voi lähettää tästä osoitteesta. <a href={AUTH_PREVIEW_ORIGIN + '/markkinatutka/seo'}>Siirry sallittuun kirjautumisosoitteeseen</a>. Supabase sallii vain kaksi kirjautumissähköpostia tunnissa.</p>}
+    {client && !isApprovedOrigin && <p role="status" style={{padding:16,borderRadius:10,background:'#fff3df',border:'1px solid #efc586'}}>Tämä on vaihtuva kehitysversion osoite. Kirjautuminen tehdään pysyvässä testiosoitteessa, joka pitää lisätä Supabasen Redirect URLs -luetteloon kerran. <a href={AUTH_PREVIEW_ORIGIN + '/markkinatutka/seo'}>Siirry sallittuun kirjautumisosoitteeseen</a>. Supabase sallii vain kaksi kirjautumissähköpostia tunnissa.</p>}
     {client && isApprovedOrigin && !isSignedIn && <form onSubmit={event => { event.preventDefault(); void sendSignInLink() }}>
       <label htmlFor="mt-email">Työsähköposti</label>
       <input id="mt-email" type="email" value={email} onChange={event => setEmail(event.target.value)} required style={{ display: 'block', padding: 10, margin: '8px 0', width: 'min(100%,360px)' }} />
