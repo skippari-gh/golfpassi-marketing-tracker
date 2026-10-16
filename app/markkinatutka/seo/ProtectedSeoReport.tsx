@@ -24,7 +24,7 @@ export default function ProtectedSeoReport() {
   const [message, setMessage] = useState('')
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(false)
-  const [comparisons,setComparisons]=useState<Record<string, { snapshot?:{title:string|null;description:string|null;h1:string[];h2:string[];excerpts:string[];fetchedAt:string};analysis?:{title:string;description:string;heading:string;note:string};error?:string;loading?:boolean}>>({})
+  const [comparisons,setComparisons]=useState<Record<string, { snapshot?:{title:string|null;description:string|null;h1:string[];h2:string[];excerpts:string[];fetchedAt:string};analysis?:{title:string;description:string;heading:string;note:string};error?:string;loading?:boolean;changePlan?:Array<{field:string;before:string;after:string;reason:string}>;planWarning?:string|null}>>({})
   async function inspectPage(item:Opportunity) {
     const id=item.query+'|'+item.page
     setComparisons(old=>({...old,[id]:{loading:true}}))
@@ -35,7 +35,7 @@ export default function ProtectedSeoReport() {
       const response=await fetch('/api/markkinatutka/page-analysis',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({url:item.page,query:item.query,ctr:item.ctr,position:item.position})})
       const data=await response.json()
       if(!response.ok)throw new Error(data.error||'Analyysi epäonnistui')
-      setComparisons(old=>({...old,[id]:{snapshot:data.snapshot,analysis:data.analysis}}))
+      setComparisons(old=>({...old,[id]:{snapshot:data.snapshot,analysis:data.analysis,changePlan:data.changePlan,planWarning:data.planWarning}}))
     }catch(e){setComparisons(old=>({...old,[id]:{error:e instanceof Error?e.message:'Analyysi epäonnistui'}}))}
   }
 
@@ -114,6 +114,17 @@ export default function ProtectedSeoReport() {
           details: <><button type="button" disabled={!!comparisons[item.query+'|'+item.page]?.loading} onClick={()=>void inspectPage(item)} style={{padding:'10px 14px',background:'#003c70',color:'white',border:0,borderRadius:8,cursor:'pointer'}}>{comparisons[item.query+'|'+item.page]?.loading?'Luetaan sivua…':'Lue nykyinen sivu ja vertaa ehdotukseen'}</button>
           {comparisons[item.query+'|'+item.page]?.error&&<p role="alert">{comparisons[item.query+'|'+item.page]?.error}</p>}
           <SeoTextComparison snapshot={comparisons[item.query+'|'+item.page]?.snapshot} item={item} />
+          {comparisons[item.query+'|'+item.page]?.planWarning&&<p role="status">Muutossuunnitelma vaatii tarkistuksen: {comparisons[item.query+'|'+item.page].planWarning}</p>}
+          {!!comparisons[item.query+'|'+item.page]?.changePlan?.length&&<section style={{background:'#f0f7fb',padding:16,borderRadius:12,margin:'12px 0'}}>
+            <strong>Muutosluonnokset tarkistettavaksi – ei julkaistu</strong>
+            {comparisons[item.query+'|'+item.page]?.changePlan?.map(change=><div key={change.field} style={{borderTop:'1px solid #cadae7',padding:'12px 0'}}>
+              <strong>{change.field}</strong>
+              <p><strong>Nykyinen:</strong> {change.before}</p>
+              <p><strong>Ehdotettu:</strong> {change.after}</p>
+              <p><strong>Miksi:</strong> {change.reason}</p>
+            </div>)}
+            <p style={{fontSize:13}}>Muutoksia ei ole hyväksytty, tallennettu eikä julkaistu. Ennen toteutusta tarvitaan käyttäjän hyväksyntä ja uusintatarkistus sivun ajantasaisesta versiosta.</p>
+          </section>}
           {!comparisons[item.query+'|'+item.page]?.snapshot && <p style={{fontSize:13,color:'#5d7180'}}>Nykyisiä tekstejä ei ole vielä haettu. Alla näkyvä ehdotus ei perustu sivun nykyisen tekstin vertailuun.</p>}
           <SeoCopyDraft item={item} /><p>Sivu: {item.page}</p><p>Klikkaukset: {nf.format(item.clicks)} · Näyttökerrat: {nf.format(item.impressions)} · Klikkausosuus (CTR): {(item.ctr*100).toFixed(1)} % · Keskimääräinen sijoitus: {item.position.toFixed(1)}</p><p>CTR tarkoittaa, kuinka moni näyttökerta johti klikkaukseen.</p></>,
         }} />)}
