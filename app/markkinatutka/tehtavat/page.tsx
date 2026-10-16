@@ -31,8 +31,21 @@ export default function ProposalsPreview() {
       {items.map(p=><article key={p.id} style={{border:'1px solid #d7e4ec',borderRadius:16,padding:23}}>
         <small style={{color:'#567a91'}}> {p.source.toUpperCase()} · Prioriteetti {p.priority} · Tila {p.status}</small>
         <h2 style={{margin:'8px 0',color:'#003c70',fontSize:22}}>{p.title}</h2>
-        <p><strong>Perustelu:</strong> {p.reason}</p>
-        <p><strong>Ehdotus:</strong> {p.proposedAction}</p>
+        <div style={{display:'grid',gap:12,margin:'18px 0'}}>
+          <section style={{background:'#f0f7fc',borderRadius:12,padding:16}}>
+            <strong style={{color:'#003c70'}}>1. Analyysi – mitä havainto tarkoittaa?</strong>
+            <p style={{margin:'8px 0 0',lineHeight:1.6}}>{p.reason} Tämä on tarkistettava tulkinta, ei osoitettu tulos.</p>
+          </section>
+          <section style={{borderLeft:'4px solid #ff8200',background:'#fff8ef',borderRadius:10,padding:16}}>
+            <strong style={{color:'#003c70'}}>2. Toimenpidesuositus – mitä tehdään?</strong>
+            <p style={{margin:'8px 0 0',lineHeight:1.6}}>{p.proposedAction}</p>
+          </section>
+          <section style={{border:'1px solid #d7e4ec',borderRadius:12,padding:16}}>
+            <strong style={{color:'#003c70'}}>3. Perustelut ja lähteet – miksi juuri tämä?</strong>
+            <p style={{margin:'8px 0',lineHeight:1.6}}>Ehdotus perustuu yllä kuvattuun oletettuun tilanteeseen. Ennen toteutusta varmista alkuperäinen lähde, ajanjakso, vertailutaso ja vaikutus matkakyselyihin.</p>
+            <p style={{margin:'0',fontSize:13,color:'#567a91'}}>Lähde: {p.sourceUrl??'Ei todennettua lähdettä (esimerkki)'} · Havaittu: {p.observedAt??'Ei mittauspäivää'} · Luotettavuus: {p.confidence}</p>
+          </section>
+        </div>
         <p style={{fontSize:13,color:'#668093'}}>Luotettavuus: matala · lähde ja oikea mittausdata puuttuvat (esimerkki)</p>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12,margin:'18px 0'}}>
           <label style={{fontSize:13,fontWeight:700}}>Vastuuhenkilö
