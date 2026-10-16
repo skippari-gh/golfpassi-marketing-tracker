@@ -27,6 +27,15 @@ export default function MarketIntelligencePreview() {
     <aside role="status" style={{ margin:'18px 0 26px', background:'#fff7e9', border:'1px solid #efc586', borderRadius:12, padding:'14px 18px', lineHeight:1.5, fontSize:14 }}>
       <strong>Esikatselu – esimerkkitietoja.</strong> Alla olevat tehtävät ja luvut eivät perustu Golfpassin todelliseen analytiikkaan. Automaattista tehtävien tallennusta, julkaisua tai kilpailijatietojen keruuta ei ole kytketty päälle.
     </aside>
+    <nav aria-label="Markkinatutkan työkalut" style={{ margin:'0 0 22px' }}>
+        <section style={{ background:C.bg, border:'1px solid '+C.border, borderRadius:18, padding:24 }}>
+          <h2 style={{ color:C.navy, fontSize:21, margin:'0 0 10px' }}>Havainnot ja työkalut</h2>
+          <p style={{ fontSize:14, lineHeight:1.55, color:C.muted }}>Siirry nopeasti analyysiin, muutosehdotuksiin tai kilpailijaseurantaan.</p>
+          <Link href="/markkinatutka/seo" style={{ display:'block', color:C.navy, padding:'14px 0', borderBottom:'1px solid '+C.border, fontWeight:700 }}>↗ SEO-mahdollisuudet <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Hakukyselyt</span></Link>
+          <Link href="/markkinatutka/muutokset" style={{ display:'block', color:C.navy, padding:'14px 0', borderBottom:'1px solid '+C.border, fontWeight:700 }}>↗ Muutosten hyväksyntä <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Esikatselu</span></Link>
+          <Link href="/markkinatutka/kilpailijat" style={{ display:'block', color:C.navy, padding:'14px 0', fontWeight:700 }}>↗ Kilpailijaseuranta <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Tarjonta</span></Link>
+        </section>
+    </nav>
     <MarkkinatutkaViewSwitch professional={<>
     <section aria-label="Tilannekuva" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:14 }}>
       {metrics.map(m=><article key={m.label} style={{ background:C.bg, border:'1px solid '+C.border, borderRadius:16, padding:22 }}>
@@ -75,13 +84,6 @@ export default function MarketIntelligencePreview() {
         </div>
       </div>
       <div style={{ display:'grid', gap:18 }}>
-        <section style={{ background:C.bg, border:'1px solid '+C.border, borderRadius:18, padding:24 }}>
-          <h2 style={{ color:C.navy, fontSize:21, margin:'0 0 10px' }}>Havainnot ja työkalut</h2>
-          <p style={{ fontSize:14, lineHeight:1.55, color:C.muted }}>Kaksi ensimmäistä analyysialuetta ovat käytettävissä esikatseluna.</p>
-          <Link href="/markkinatutka/seo" style={{ display:'block', color:C.navy, padding:'14px 0', borderBottom:'1px solid '+C.border, fontWeight:700 }}>↗ SEO-mahdollisuudet <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Hakukyselyt</span></Link>
-          <Link href="/markkinatutka/muutokset" style={{ display:'block', color:C.navy, padding:'14px 0', borderBottom:'1px solid '+C.border, fontWeight:700 }}>↗ Muutosten hyväksyntä <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Esikatselu</span></Link>
-          <Link href="/markkinatutka/kilpailijat" style={{ display:'block', color:C.navy, padding:'14px 0', fontWeight:700 }}>↗ Kilpailijaseuranta <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Tarjonta</span></Link>
-        </section>
         <section style={{ border:'1px solid '+C.border, borderRadius:18, padding:24 }}>
           <h2 style={{ color:C.navy, fontSize:21, margin:'0 0 14px' }}>Näin järjestelmä oppii</h2>
           {[
