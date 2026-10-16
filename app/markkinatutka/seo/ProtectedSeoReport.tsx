@@ -1,5 +1,6 @@
-import InsightCard from '../InsightCard'
 'use client'
+
+import InsightCard from '../InsightCard'
 
 import { useEffect, useState } from 'react'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
