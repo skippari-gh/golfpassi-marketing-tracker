@@ -1,3 +1,4 @@
+import { assessPriority, evidenceScore, type PriorityAssessment } from './marketing-priority'
 import type { SearchOpportunity } from './search-console-analysis'
 
 export type DestinationSeoGroup = {
@@ -9,6 +10,7 @@ export type DestinationSeoGroup = {
   examples:string[]
   recommendation:string
   caution:string
+  priority:PriorityAssessment
 }
 
 const destinations:{name:string;pattern:RegExp}[]=[
@@ -40,6 +42,7 @@ export function groupSeoOpportunitiesByDestination(rows:SearchOpportunity[],maxG
   const impressions=items.reduce((sum,x)=>sum+x.impressions,0)
   result.push({
    name,clicks,impressions,queryCount:items.length,pages,
+   priority:assessPriority({commercial:null,opportunity:evidenceScore(impressions,clicks,items.length),feasibility:null,confidence:null}),
    examples:items.slice(0,3).map(x=>x.query),
    recommendation:items.some(x=>x.position<=10&&x.ctr<0.03)
     ? 'Tarkista näiden hakujen hakutulosotsikot ja kuvaukset sekä vastaavuus sivujen sisältöön.'
