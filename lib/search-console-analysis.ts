@@ -16,12 +16,14 @@ export type SearchOpportunity = {
  * not claims that changing a page will necessarily improve ranking.
  */
 export function identifySearchOpportunities(rows: SearchConsoleRow[], maxResults = 20): SearchOpportunity[] {
+  // Brand navigational queries need their own analysis, not generic acquisition SEO advice.
+  const brandQuery = /golf\s*passi/i
   const candidates = rows
     .filter(row =>
       Number.isFinite(row.impressions) && row.impressions >= 30 &&
       Number.isFinite(row.ctr) && row.ctr >= 0 && row.ctr <= 1 &&
       Number.isFinite(row.position) && row.position > 0 &&
-      row.query.trim().length > 0 && row.page.startsWith('https://')
+      row.query.trim().length > 0 && !brandQuery.test(row.query) && row.page.startsWith('https://')
     )
     .map(row => {
       const lowCtr = row.ctr < 0.03 && row.position <= 10
