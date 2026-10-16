@@ -25,6 +25,7 @@ export default function MarketIntelligencePreview() {
           </div>
         ))}
       </section>
+      <p><Link href="/markkinatutka/seo" style={{ display: 'inline-block', padding: '12px 18px', borderRadius: 9, background: '#003c70', color: 'white', textDecoration: 'none' }}>Tutustu SEO-mahdollisuuksiin (esikatselu) →</Link></p>
       <h2 style={{ marginTop: 36 }}>Kolme esimerkkihavaintoa</h2>
       <section style={{ display: 'grid', gap: 12 }}>
         {observations.map((item, index) => (
