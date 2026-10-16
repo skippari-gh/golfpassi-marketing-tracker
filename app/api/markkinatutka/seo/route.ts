@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const [rows, daily, previousDaily] = await Promise.all([getSearchConsoleQueries(iso(start), iso(end), 1000),getSearchConsoleDailyTotals(iso(start),iso(end)),getSearchConsoleDailyTotals(iso(previousStart),iso(previousEnd))])
     const opportunities = identifySearchOpportunities(rows, 20)
     const ga4Configured=Boolean(process.env.GA4_PROPERTY_ID&&(process.env.GA4_SERVICE_ACCOUNT_JSON||(process.env.GA4_CLIENT_EMAIL&&process.env.GA4_PRIVATE_KEY)))
-    const ga4=ga4Configured?await getGa4OrganicSearch(iso(start),iso(end)).then(data=>({status:'ready' as const,...data})).catch((error:unknown)=>{console.error('GA4 organic search unavailable:',error instanceof Error?error.name:'unknown');return {status:'unavailable' as const}}):{status:'not-configured' as const}
+    const ga4=ga4Configured?await Promise.all([getGa4OrganicSearch(iso(start),iso(end)),getGa4OrganicSearch(iso(previousStart),iso(previousEnd))]).then(([data,previous])=>({status:'ready' as const,...data,previousDaily:previous.daily})).catch((error:unknown)=>{console.error('GA4 organic search unavailable:',error instanceof Error?error.name:'unknown');return {status:'unavailable' as const}}):{status:'not-configured' as const}
     return Response.json({
       property: process.env.GSC_SITE_URL, startDate: iso(start), endDate: iso(end),
       fetchedRows: rows.length, opportunities, daily, ga4,
