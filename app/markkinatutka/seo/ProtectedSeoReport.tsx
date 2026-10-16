@@ -24,6 +24,20 @@ export default function ProtectedSeoReport() {
   const [message, setMessage] = useState('')
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(false)
+  const [comparisons,setComparisons]=useState<Record<string, { snapshot?:{title:string|null;description:string|null;h1:string[];h2:string[];excerpts:string[];fetchedAt:string};analysis?:{title:string;description:string;heading:string;note:string};error?:string;loading?:boolean}>>({})
+  async function inspectPage(item:Opportunity) {
+    const id=item.query+'|'+item.page
+    setComparisons(old=>({...old,[id]:{loading:true}}))
+    try {
+      if(!client)throw new Error('Kirjautuminen puuttuu')
+      const {data:{session}}=await client.auth.getSession()
+      if(!session)throw new Error('Kirjaudu ensin sisään')
+      const response=await fetch('/api/markkinatutka/page-analysis',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({url:item.page,query:item.query,ctr:item.ctr,position:item.position})})
+      const data=await response.json()
+      if(!response.ok)throw new Error(data.error||'Analyysi epäonnistui')
+      setComparisons(old=>({...old,[id]:{snapshot:data.snapshot,analysis:data.analysis}}))
+    }catch(e){setComparisons(old=>({...old,[id]:{error:e instanceof Error?e.message:'Analyysi epäonnistui'}}))}
+  }
 
   useEffect(() => {
     if (!client) return
@@ -97,7 +111,19 @@ export default function ProtectedSeoReport() {
           caveat: 'Search Console näyttää hakutulosten havaintoja, ei suoraan matkavarausten tai sisältömuutosten vaikutusta.',
           source: 'Google Search Console: ' + report.property + ' · ' + report.startDate + '–' + report.endDate,
           confidence: 'Sääntöpohjainen tarkistusehdotus, ei vahvistettu syy-yhteys',
-          details: <><SeoCopyDraft item={item} /><p>Sivu: {item.page}</p><p>Klikkaukset: {nf.format(item.clicks)} · Näyttökerrat: {nf.format(item.impressions)} · Klikkausosuus (CTR): {(item.ctr*100).toFixed(1)} % · Keskimääräinen sijoitus: {item.position.toFixed(1)}</p><p>CTR tarkoittaa, kuinka moni näyttökerta johti klikkaukseen.</p></>,
+          details: <><button type="button" disabled={!!comparisons[item.query+'|'+item.page]?.loading} onClick={()=>void inspectPage(item)} style={{padding:'10px 14px',background:'#003c70',color:'white',border:0,borderRadius:8,cursor:'pointer'}}>{comparisons[item.query+'|'+item.page]?.loading?'Luetaan sivua…':'Lue nykyinen sivu ja vertaa ehdotukseen'}</button>
+          {comparisons[item.query+'|'+item.page]?.error&&<p role="alert">{comparisons[item.query+'|'+item.page]?.error}</p>}
+          {comparisons[item.query+'|'+item.page]?.snapshot&&<section style={{background:'#f3f8fb',borderRadius:12,padding:16,marginTop:14}}>
+            <strong>Nykyinen julkinen sivu – {comparisons[item.query+'|'+item.page].snapshot?.fetchedAt}</strong>
+            <p><strong>Nykyinen Google-otsikko:</strong> {comparisons[item.query+'|'+item.page].snapshot?.title||'Puuttuu'}</p>
+            <p><strong>Nykyinen metakuvaus:</strong> {comparisons[item.query+'|'+item.page].snapshot?.description||'Puuttuu'}</p>
+            <p><strong>Nykyinen pääotsikko:</strong> {comparisons[item.query+'|'+item.page].snapshot?.h1.join(' / ')||'Puuttuu'}</p>
+            <p><strong>Väliotsikot:</strong> {comparisons[item.query+'|'+item.page].snapshot?.h2.join(' / ')||'Ei löydetty'}</p>
+            <p><strong>Tekstinäyte:</strong> {comparisons[item.query+'|'+item.page].snapshot?.excerpts.slice(0,3).join(' ')||'Ei löydetty'}</p>
+            <p><strong>Vertailun johtopäätös:</strong> {comparisons[item.query+'|'+item.page].analysis?.title}. {comparisons[item.query+'|'+item.page].analysis?.description}. {comparisons[item.query+'|'+item.page].analysis?.heading}.</p>
+            <p>{comparisons[item.query+'|'+item.page].analysis?.note}</p>
+          </section>}
+          <SeoCopyDraft item={item} /><p>Sivu: {item.page}</p><p>Klikkaukset: {nf.format(item.clicks)} · Näyttökerrat: {nf.format(item.impressions)} · Klikkausosuus (CTR): {(item.ctr*100).toFixed(1)} % · Keskimääräinen sijoitus: {item.position.toFixed(1)}</p><p>CTR tarkoittaa, kuinka moni näyttökerta johti klikkaukseen.</p></>,
         }} />)}
       </div>
     </div>}
