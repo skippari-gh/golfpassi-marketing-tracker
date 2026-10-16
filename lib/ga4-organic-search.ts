@@ -36,8 +36,9 @@ export async function getGa4OrganicSearch(startDate:string,endDate:string){
   if(!response.ok)throw new Error('GA4 report failed ('+response.status+')')
   return response.json()
  }
- const [trend,events]=await Promise.all([run(['date'],['sessions','activeUsers','keyEvents'],100),run(['eventName'],['keyEvents'],100)])
+ const [trend,events,summary]=await Promise.all([run(['date'],['sessions','activeUsers','keyEvents'],100),run(['eventName'],['keyEvents'],100),run([],['sessions','activeUsers','keyEvents'],1)])
  const daily:GaDay[]=(trend.rows||[]).map((r:any)=>({date:String(r.dimensionValues?.[0]?.value||'').replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3'),sessions:Number(r.metricValues?.[0]?.value||0),activeUsers:Number(r.metricValues?.[1]?.value||0),keyEvents:Number(r.metricValues?.[2]?.value||0)})).filter((r:GaDay)=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)).sort((a:GaDay,b:GaDay)=>a.date.localeCompare(b.date))
  const keyEvents:EventRow[]=(events.rows||[]).map((r:any)=>({name:String(r.dimensionValues?.[0]?.value||''),keyEvents:Number(r.metricValues?.[0]?.value||0)})).filter((r:EventRow)=>r.keyEvents>0).sort((a:EventRow,b:EventRow)=>b.keyEvents-a.keyEvents)
- return {daily,keyEvents,channel:'Organic Search',source:'Google Analytics 4'}
+ const totals=summary.rows?.[0]?.metricValues||[]
+ return {daily,keyEvents,totals:{sessions:Number(totals[0]?.value||0),activeUsers:Number(totals[1]?.value||0),keyEvents:Number(totals[2]?.value||0)},channel:'Organic Search',source:'Google Analytics 4'}
 }
