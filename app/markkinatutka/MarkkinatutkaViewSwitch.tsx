@@ -150,7 +150,7 @@ function SearchTrends({daily,previousDaily}:{daily:SearchDay[];previousDaily:Sea
 function TrendPlot({data,field,label,total,change,color}:{data:SearchDay[];field:'clicks'|'impressions';label:string;total:string;change:string;color:string}){
  const width=360,height=132,pad=9
  const max=Math.max(1,...data.map(d=>d[field]))
- const points=data.map((d,i)=>`${pad+(i*(width-pad*2)/Math.max(1,data.length-1)).toFixed(1)},${(height-pad-d[field]/max*(height-pad*2)).toFixed(1)}`).join(' ')
+ const points=data.map((d,i)=>`${(pad+i*(width-pad*2)/Math.max(1,data.length-1)).toFixed(1)},${(height-pad-d[field]/max*(height-pad*2)).toFixed(1)}`).join(' ')
  return <div style={{border:'1px solid #d9e6ef',borderRadius:12,padding:16,background:'#f9fcfe'}}>
   <span style={{fontSize:13,color:'#527089',fontWeight:700}}>{label}</span>
   <strong style={{display:'block',fontSize:27,color:'#003c70',margin:'3px 0 3px'}}>{total}</strong>
