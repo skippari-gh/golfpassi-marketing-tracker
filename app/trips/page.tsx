@@ -143,7 +143,7 @@ export default async function TripsPage({
 
   const activeTrips = allTrips.filter(
     (trip) =>
-      trip.status === 'active' &&
+      (trip.status === 'active' || trip.status === 'full') &&
       trip.days_to_start >= 0
   )
 
