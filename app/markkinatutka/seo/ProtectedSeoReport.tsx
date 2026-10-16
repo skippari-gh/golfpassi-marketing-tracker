@@ -1,3 +1,4 @@
+import InsightCard from '../InsightCard'
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -81,12 +82,22 @@ export default function ProtectedSeoReport() {
     {report && <div>
       <p><strong>Lähde:</strong> {report.property} · {report.startDate}–{report.endDate} · {nf.format(report.fetchedRows)} kysely-sivuriviä</p>
       {report.opportunities.length === 0 && <p>Tarkistettavia mahdollisuuksia ei löytynyt valitulla sääntöjoukolla.</p>}
-      {report.opportunities.map(item => <article key={item.query + item.page} style={{ borderTop: '1px solid #d8e6ed', paddingTop: 14, marginTop: 14 }}>
-        <h3>{item.query}</h3>
-        <p style={{ overflowWrap: 'anywhere' }}>{item.page}</p>
-        <p>Kl.: {nf.format(item.clicks)} · Näytöt: {nf.format(item.impressions)} · CTR: {(item.ctr * 100).toFixed(1)} % · Sijoitus: {item.position.toFixed(1)}</p>
-        <p>{item.reason}</p>
-      </article>)}
+      <div style={{display:'grid',gap:14}}>
+        {report.opportunities.map(item => <InsightCard key={item.query + item.page} insight={{
+          title: 'Hakusana ”' + item.query + '” tarjoaa tarkistettavaa',
+          analysis: item.position <= 10
+            ? 'Sivu saa hakunäyttöjä hyviltä sijoilta, mutta suhteellisen vähän klikkauksia. Hakutuloksen kiinnostavuutta kannattaa selvittää.'
+            : 'Sivu löytyy hakutuloksista, mutta keskimääräinen sijoitus voi rajoittaa kävijämääriä.',
+          action: item.position <= 10
+            ? 'Vertaa sivun otsikkoa ja hakutulostekstiä siihen, mitä hakija todennäköisesti etsii. Tarkista tulos eri kyselyillä ennen muutoksia.'
+            : 'Tarkista sivun sisältö ja hakijan tavoite. Selvitä, voisiko tärkeimpiin kysymyksiin vastata nykyistä paremmin.',
+          rationale: item.reason + ' Tiedot osoittavat mahdollisen parannuskohteen, eivät muutoksen varmaa vaikutusta.',
+          caveat: 'Search Console näyttää hakutulosten havaintoja, ei suoraan matkavarausten tai sisältömuutosten vaikutusta.',
+          source: 'Google Search Console: ' + report.property + ' · ' + report.startDate + '–' + report.endDate,
+          confidence: 'Sääntöpohjainen tarkistusehdotus, ei vahvistettu syy-yhteys',
+          details: <><p>Sivu: {item.page}</p><p>Klikkaukset: {nf.format(item.clicks)} · Näyttökerrat: {nf.format(item.impressions)} · Klikkausosuus (CTR): {(item.ctr*100).toFixed(1)} % · Keskimääräinen sijoitus: {item.position.toFixed(1)}</p><p>CTR tarkoittaa, kuinka moni näyttökerta johti klikkaukseen.</p></>,
+        }} />)}
+      </div>
     </div>}
   </section>
 }
