@@ -28,6 +28,29 @@ export default function SeoPreview() {
       <strong>ESIMERKKIDATA – EI OIKEITA GOLFPASSIN HAKUTULOKSIA.</strong>
       <p style={{ marginBottom: 0 }}>Search Console -tietojen käyttö odottaa palvelinpuolen tunnistautumista ja yhteyden testausta. Sivulla ei tehdä Search Console -API-kutsuja.</p>
     </div>
+    <section aria-label="Konkreettinen SEO-tekstiehdotus" style={{border:'1px solid #bfd9e8',background:'#f5faff',padding:'clamp(18px,3vw,26px)',borderRadius:16,margin:'20px 0 28px',color:'#153d5a'}}>
+      <small style={{letterSpacing:1.2,fontWeight:700,color:'#527a93'}}>SISÄLTÖEHDOTUS · EI JULKAISTU</small>
+      <h2 style={{color:'#003c70',fontSize:25,margin:'10px 0'}}>Näin Portugalin golfmatkojen hakutulosta ja sivua voisi parantaa</h2>
+      <p style={{lineHeight:1.65}}>Ehdotukset perustuvat Golfpassin julkisesti näkyvään Portugali-tarjontaan. Hakumääriä tai nykyisen sivun metatietoja ei ole vahvistettu, joten ehdotuksia ei pidä esittää mitattuina tuloksina.</p>
+      <h3 style={{color:'#003c70'}}>Tavoiteltavat hakulausekkeet</h3>
+      <p style={{lineHeight:1.7}}><strong>Pääaihe:</strong> golfmatkat Portugali. <strong>Luontevat rinnakkaiset haut:</strong> Portugalin golfmatkat, golfmatkat Algarve, golfmatkat Madeira, golfmatkat Lissabon, golfmatkat Portugali 2027, golfmatkat Portugali lennot ja golf.</p>
+      <div style={{background:'white',border:'1px solid #d9e6ee',borderRadius:12,padding:'16px 18px'}}>
+        <strong>Google-otsikko (ehdotus)</strong>
+        <p style={{fontSize:18,color:'#003c70',fontWeight:700}}>Golfmatkat Portugali – Algarve, Madeira ja Lissabon | Golfpassi</p>
+        <strong>Metakuvaus (ehdotus)</strong>
+        <p style={{lineHeight:1.6}}>Löydä Portugalin golfmatkat Algarveen, Madeiralle ja Lissabonin alueelle. Tutustu golfpaketteihin, hotelleihin, lähtöpäiviin ja matkojen sisältöön.</p>
+      </div>
+      <h3 style={{color:'#003c70'}}>Sivun pääotsikko (H1)</h3>
+      <p style={{fontSize:18,fontWeight:700}}>Golfmatkat Portugaliin – Algarve, Madeira ja Lissabon</p>
+      <h3 style={{color:'#003c70'}}>Suositeltu ingressi</h3>
+      <p style={{lineHeight:1.7}}>Portugali tarjoaa golfmatkoille monipuolisia vaihtoehtoja Algarven tunnetuista golfkohteista Madeiran maisemiin ja Lissabonin alueen kentille. Tutustu Golfpassin matkoihin, vertaile hotelleja, lähtöpäiviä ja golfpakettien sisältöjä sekä löydä itsellesi sopiva golfmatka Portugaliin.</p>
+      <details style={{padding:'12px 0',borderTop:'1px solid #d2e2ec'}}>
+        <summary style={{cursor:'pointer',fontWeight:700}}>Näytä toteutusohje ja perustelut</summary>
+        <p style={{lineHeight:1.65}}>Jaa sisältö kolmeen osaan: Algarven golfmatkat, Madeiran golfmatkat ja Lissabonin alueen golfmatkat. Linkitä kunkin alueen todellisiin matkoihin. Kerro matkakohtaisesti lähtöajat, sisältö ja hinta vain ajantasaisesta matkadatasta. Älä toista hakusanoja väkinäisesti.</p>
+        <p style={{lineHeight:1.65}}>Ennen toteutusta: selvitä sivuston todellinen Portugali-koontisivu ja sen nykyiset H1-, title- ja meta description -tekstit. Tässä esimerkissä käytettyä osoitetta /portugali/ ei ole varmistettu toimivaksi. Varmista Search Consolesta oikeat hakulausekkeet, kyselyjen sijainti ja klikkausosuus ennen muutoksen priorisointia.</p>
+        <p style={{lineHeight:1.65}}>Mittaa muutoksen jälkeen samoilla hakukyselyillä näyttökerrat, klikkaukset, klikkausosuus ja mahdollisuuksien mukaan matkakyselyt. Vertaa vastaaviin ajanjaksoihin ja huomioi kausivaihtelu. Parannusta ei voi luvata etukäteen.</p>
+      </details>
+    </section>
     <ProtectedSeoReport />
     <section aria-label="Hakutermien analyysi" style={{ display: 'grid', gap: 15 }}>
       {opportunities.map(row => <InsightCard key={row.query + row.page} insight={{
