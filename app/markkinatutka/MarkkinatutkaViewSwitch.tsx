@@ -40,13 +40,16 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
    <button type="button" aria-pressed={view==='workbench'} onClick={()=>setView('workbench')} style={{padding:'12px 20px',background:view==='workbench'?'#003c70':'white',color:view==='workbench'?'white':'#003c70',border:'1px solid #c7d9e6',borderRadius:10,fontWeight:700,cursor:'pointer'}}>Työpöytä</button>
    <span style={{fontSize:13,color:'#5f778a'}}>Sama tieto, eri tarkkuudella</span>
   </nav>
-  <section style={{background:'#eef7fd',border:'1px solid #c9e1ef',padding:18,borderRadius:14,marginBottom:20}}>
-   <strong style={{color:'#003c70'}}>Ajantasaiset SEO-havainnot</strong>
-   <p style={{margin:'9px 0',lineHeight:1.55}}>Hae Googlen mitatut hakutiedot. Haussa käytetään samaa suojattua rajapintaa kuin SEO-työkalussa. Muut markkinoinnin osa-alueet ovat vielä esimerkkisisältöä.</p>
-   <button type="button" onClick={()=>void refreshMeasured()} disabled={fetching} style={{padding:'10px 15px',background:'#003c70',border:0,color:'white',borderRadius:9}}>{fetching?'Haetaan…':'Hae ajantasaiset havainnot'}</button>
+  <section style={{background:'#fff',border:'2px solid #b8d8ec',padding:'clamp(18px,3vw,28px)',borderRadius:16,marginBottom:20}}>
+   <h2 style={{color:'#003c70',fontSize:24,margin:'0 0 7px'}}>Hakutiedot ja suositukset</h2>
+   <p style={{margin:'9px 0',lineHeight:1.55}}>Hae Golfpassin mitatut hakutiedot. Suositukset ilmestyvät heti tähän alle, samaan näkymään.</p>
+   <button type="button" onClick={()=>void refreshMeasured()} disabled={fetching} style={{padding:'10px 15px',background:'#003c70',border:0,color:'white',borderRadius:9}}>{fetching?'Haetaan hakutietoja…':measured===null?'Hae ajantasaiset havainnot ↓':'Päivitä hakutiedot ↻'}</button>
    {error&&<p role="alert">{error.includes('Search Console -yhteys')?'Google-hakutietojen yhteys odottaa määritystä testiympäristöön.':error.includes('Kirjautuminen tai käyttöoikeus')?'Kirjautuminen ei ole voimassa tai käyttöoikeus puuttuu.':error} <Link href="/markkinatutka/seo">Avaa kirjautuminen / SEO-työkalu →</Link></p>}
-   {measured&&<p role="status">Google Search Console · {period} · {measured.length} tarkistettavaa havaintoa. Tämä ei mittaa suoraan myyntivaikutusta.</p>}
-  </section>
+   {measured&&<p role="status" style={{fontSize:14,color:'#355d74'}}>✓ Tiedot haettu · Google Search Console · {period} · {measured.length} tarkistettavaa havaintoa. Tämä ei mittaa suoraan myyntivaikutusta.</p>}
+   <div id="markkinatutka-tulokset" style={{borderTop:'1px solid #d5e6ef',marginTop:22,paddingTop:18}}>
+     <strong style={{color:'#003c70',fontSize:17}}>{measured===null?'Tulokset näkyvät tässä haun jälkeen':'Haun tulokset ja suositukset'}</strong>
+     {measured===null&&<p style={{color:'#637b8f',margin:'8px 0 0',fontSize:14}}>Hakua ei ole vielä tehty. Alla on erikseen merkittyjä malliesimerkkejä, jotta näet millaisia suosituksia palvelu tarjoaa.</p>}
+
   {view==='workbench'? <>{measured!==null&&<DestinationInsights destinations={destinations} detailed/>}{measured!==null&&<MeasuredInsights insights={measured} detailed/>}<details open={measured===null} style={{marginTop:20}}><summary style={{color:'#003c70',fontWeight:700,cursor:'pointer'}}>Työpöydän malliesimerkit ja työkalut</summary><p style={{fontSize:13}}>Seuraavat esimerkit eivät perustu mittauksiin.</p>{professional}</details></> :
    <section aria-label="Johdon yhteenveto">
     <h2 style={{color:'#003c70',fontSize:25,margin:'10px 0'}}>Tärkeimmät huomiot päätöksenteon tueksi</h2>
@@ -73,6 +76,8 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
     </details>}
     <p style={{fontSize:13,color:'#637b8f',marginTop:20}}>Vaihtamalla Työpöytä-näkymään näet myös yksityiskohtaiset tarkistukset, tehtäväpolut ja mittaussuunnitelmat.</p>
    </section>}
+   </div>
+  </section>
  </div>
 }
 
