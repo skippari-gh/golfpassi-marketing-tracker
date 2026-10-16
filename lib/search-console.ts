@@ -85,3 +85,20 @@ export async function getSearchConsoleQueries(startDate: string, endDate: string
     position: Number(row.position || 0),
   }))
 }
+
+/** Daily site totals, queried separately from the top query/page samples. */
+export async function getSearchConsoleDailyTotals(startDate:string,endDate:string):Promise<Array<{date:string;clicks:number;impressions:number;ctr:number;position:number}>>{
+ const property=process.env.GSC_SITE_URL
+ if(!property||!/^\d{4}-\d{2}-\d{2}$/.test(startDate)||!/^\d{4}-\d{2}-\d{2}$/.test(endDate)||startDate>endDate)throw new Error('Invalid Search Console date interval')
+ const token=await getReadOnlyToken()
+ const response=await fetch('https://www.googleapis.com/webmasters/v3/sites/'+encodeURIComponent(property)+'/searchAnalytics/query',{
+ method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},
+ body:JSON.stringify({startDate,endDate,dimensions:['date'],rowLimit:100,dataState:'final'}),cache:'no-store'
+ })
+ if(!response.ok)throw new Error('Search Console data request failed ('+response.status+')')
+ const json=await response.json()
+ return (Array.isArray(json.rows)?json.rows:[]).map((row:any)=>({
+ date:String(row.keys?.[0]||''),clicks:Number(row.clicks||0),impressions:Number(row.impressions||0),
+ ctr:Number(row.ctr||0),position:Number(row.position||0)
+ })).filter((r:{date:string})=>/^\d{4}-\d{2}-\d{2}$/.test(r.date)).sort((a:{date:string},b:{date:string})=>a.date.localeCompare(b.date))
+}
