@@ -1,3 +1,4 @@
+import InsightCard from '../InsightCard'
 import ProtectedSeoReport from './ProtectedSeoReport'
 import Link from 'next/link'
 import { identifySearchOpportunities } from '../../../lib/search-console-analysis'
@@ -29,16 +30,20 @@ export default function SeoPreview() {
     </div>
     <ProtectedSeoReport />
     <section aria-label="Hakutermien analyysi" style={{ display: 'grid', gap: 15 }}>
-      {opportunities.map(row => <article key={row.query + row.page} style={{ border: '1px solid #cddce6', borderRadius: 14, padding: 20 }}>
-        <div style={{ fontSize: 12, textTransform: 'uppercase', color: '#38738c' }}>Tarkistettava mahdollisuus</div>
-        <h2 style={{ margin: '8px 0' }}>{row.query}</h2>
-        <p style={{ color: '#46677c', overflowWrap: 'anywhere' }}>{row.page}</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 12 }}>
-          {[['Klikkaukset', formatNumber(row.clicks)], ['Näyttökerrat',formatNumber(row.impressions)], ['CTR',(row.ctr * 100).toFixed(1) + ' %'], ['Sijoitus',row.position.toFixed(1)]].map(([name,value]) => <div key={name} style={{ background: '#eef5f9', padding: 12, borderRadius: 8 }}><div style={{ fontSize: 12 }}>{name}</div><strong style={{ fontSize: 23 }}>{value}</strong></div>)}
-        </div>
-        <p><strong>Miksi nostettu:</strong> {row.reason}</p>
-        <p style={{ fontSize: 13, color: '#46677c' }}>Tämä on sääntöpohjainen ehdotus, ei ennuste muutoksen vaikutuksesta.</p>
-      </article>)}
+      {opportunities.map(row => <InsightCard key={row.query + row.page} insight={{
+        title: 'Hakusana ”' + row.query + '” kannattaa tarkistaa',
+        analysis: row.position <= 10
+          ? 'Sivu näkyy näillä esimerkkiluvuilla hakutuloksissa melko hyvin, mutta hakija siirtyy sivulle harvoin.'
+          : 'Sivu ei vielä näy näillä esimerkkiluvuilla hakutulosten kärkipäässä, mikä voi rajoittaa käyntejä.',
+        action: row.position <= 10
+          ? 'Vertaa hakulauseketta sivun otsikkoon, hakutulostekstiin ja sisältöön. Tarkista ensin hakutuloksen sijoitus.'
+          : 'Selvitä, vastaako sivu hakijan kysymykseen ja voiko sisältöä täydentää hyödyllisesti.',
+        rationale: 'Havainto perustuu näyttökertojen, klikkausten ja sijoituksen yhdistelmään. ' + row.reason,
+        caveat: 'Malliluvut eivät ole ennuste. Johtopäätös pitää varmistaa oikeasta aineistosta.',
+        source: 'Kuvitteellinen Google Search Console -esimerkkiaineisto',
+        confidence: 'Malliesimerkki – ei todettua näyttöä',
+        details: <><p>Sivu: {row.page}</p><p>Klikkaukset: {formatNumber(row.clicks)} · Näyttökerrat: {formatNumber(row.impressions)} · Klikkausosuus (CTR): {(row.ctr * 100).toFixed(1)} % · Keskimääräinen sijoitus: {row.position.toFixed(1)}</p><p>CTR tarkoittaa osuutta hakutuloksen näyttökerroista, jotka johtivat klikkaukseen.</p></>,
+      }} />)}
     </section>
   </main>
 }
