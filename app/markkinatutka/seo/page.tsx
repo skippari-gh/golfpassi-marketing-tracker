@@ -1,3 +1,4 @@
+import { suggestSeoCopy } from '../../../lib/seo-copy-suggestions'
 import InsightCard from '../InsightCard'
 import ProtectedSeoReport from './ProtectedSeoReport'
 import Link from 'next/link'
@@ -65,8 +66,24 @@ export default function SeoPreview() {
         caveat: 'Malliluvut eivät ole ennuste. Johtopäätös pitää varmistaa oikeasta aineistosta.',
         source: 'Kuvitteellinen Google Search Console -esimerkkiaineisto',
         confidence: 'Malliesimerkki – ei todettua näyttöä',
-        details: <><p>Sivu: {row.page}</p><p>Klikkaukset: {formatNumber(row.clicks)} · Näyttökerrat: {formatNumber(row.impressions)} · Klikkausosuus (CTR): {(row.ctr * 100).toFixed(1)} % · Keskimääräinen sijoitus: {row.position.toFixed(1)}</p><p>CTR tarkoittaa osuutta hakutuloksen näyttökerroista, jotka johtivat klikkaukseen.</p></>,
+        details: <><SeoCopyDraft row={row} /><p>Sivu: {row.page}</p><p>Klikkaukset: {formatNumber(row.clicks)} · Näyttökerrat: {formatNumber(row.impressions)} · Klikkausosuus (CTR): {(row.ctr * 100).toFixed(1)} % · Keskimääräinen sijoitus: {row.position.toFixed(1)}</p><p>CTR tarkoittaa osuutta hakutuloksen näyttökerroista, jotka johtivat klikkaukseen.</p></>,
       }} />)}
     </section>
   </main>
+}
+
+function SeoCopyDraft({row}:{row:SearchConsoleRow}) {
+  const draft=suggestSeoCopy(row)
+  return <section style={{border:'1px solid #c5dcea',background:'#f3f9fc',padding:16,borderRadius:12,margin:'12px 0',color:'#143b59'}}>
+    <h4 style={{fontSize:17,margin:'0 0 8px'}}>Automaattinen tekstiehdotus – tarkistettava luonnos</h4>
+    <p><strong>Ensisijainen haku:</strong> {draft.focusQuery}</p>
+    <p><strong>Rinnakkaiset hakulausekkeet:</strong> {draft.relatedQueries.join(', ')}</p>
+    <p><strong>Google-otsikko:</strong> {draft.title}</p>
+    <p><strong>Metakuvaus:</strong> {draft.description}</p>
+    <p><strong>Sivun pääotsikko:</strong> {draft.heading}</p>
+    <p><strong>Ingressiehdotus:</strong> {draft.intro}</p>
+    <p><strong>Perustelu:</strong> {draft.explanation}</p>
+    <strong>Ennen julkaisua varmista:</strong>
+    <ul>{draft.verification.map(item=><li key={item}>{item}</li>)}</ul>
+  </section>
 }
