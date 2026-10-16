@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { transitionProposal, toMarketingActionDraft, type MarketingProposal } from '../../../lib/marketing-proposal-workflow'
 
 const examples: MarketingProposal[] = [
-  { id:'demo-seo-1',source:'seo',title:'Tarkista Portugalin kohdesivun hakutarkoitus', reason:'Esimerkki: orgaanisen näkyvyyden ja klikkausten välillä voi olla parannettavaa.',proposedAction:'Vertaa hakukyselyitä otsikkoon, metakuvaukseen ja sivun sisältöön.',sourceUrl:null,observedAt:null,confidence:'low',priority:'high',status:'suggested',owner:null,dueDate:null,outcome:null },
-  { id:'demo-competitive-1',source:'competitor',title:'Vertaa kevään golfmatkojen viestintää',reason:'Esimerkki: kilpailijoiden uudet tarjoukset voivat vaikuttaa kysyntään.',proposedAction:'Tarkista vertailukelpoiset hinnat, lähdöt ja paketin sisältö.',sourceUrl:null,observedAt:null,confidence:'low',priority:'medium',status:'suggested',owner:null,dueDate:null,outcome:null },
+  { id:'demo-seo-1',source:'seo',title:'Portugalin kohdesivun hakutulosta kannattaa tarkastella', reason:'Esimerkki: orgaanisen näkyvyyden ja klikkausten välillä voi olla parannettavaa.',proposedAction:'Vertaa hakukyselyitä otsikkoon, metakuvaukseen ja sivun sisältöön.',sourceUrl:null,observedAt:null,confidence:'low',priority:'high',status:'suggested',owner:null,dueDate:null,outcome:null },
+  { id:'demo-competitive-1',source:'competitor',title:'Kevätmatkojen kilpailutilanne kannattaa vertailla',reason:'Esimerkki: kilpailijoiden uudet tarjoukset voivat vaikuttaa kysyntään.',proposedAction:'Tarkista vertailukelpoiset hinnat, lähdöt ja paketin sisältö.',sourceUrl:null,observedAt:null,confidence:'low',priority:'medium',status:'suggested',owner:null,dueDate:null,outcome:null },
 ]
 
 export default function ProposalsPreview() {
@@ -31,22 +31,28 @@ export default function ProposalsPreview() {
       {items.map(p=><article key={p.id} style={{border:'1px solid #d7e4ec',borderRadius:16,padding:23}}>
         <small style={{color:'#567a91'}}> {p.source.toUpperCase()} · Prioriteetti {p.priority} · Tila {p.status}</small>
         <h2 style={{margin:'8px 0',color:'#003c70',fontSize:22}}>{p.title}</h2>
+        <p style={{fontSize:14,color:'#47697f',lineHeight:1.6,margin:'12px 0'}}>Yhteenveto: {p.reason}</p>
         <div style={{display:'grid',gap:12,margin:'18px 0'}}>
           <section style={{background:'#f0f7fc',borderRadius:12,padding:16}}>
-            <strong style={{color:'#003c70'}}>1. Analyysi – mitä havainto tarkoittaa?</strong>
+            <strong style={{color:'#003c70'}}>Mitä tämä tarkoittaa?</strong>
             <p style={{margin:'8px 0 0',lineHeight:1.6}}>{p.reason} Tämä on tarkistettava tulkinta, ei osoitettu tulos.</p>
           </section>
           <section style={{borderLeft:'4px solid #ff8200',background:'#fff8ef',borderRadius:10,padding:16}}>
-            <strong style={{color:'#003c70'}}>2. Toimenpidesuositus – mitä tehdään?</strong>
+            <strong style={{color:'#003c70'}}>Mitä kannattaa tehdä?</strong>
             <p style={{margin:'8px 0 0',lineHeight:1.6}}>{p.proposedAction}</p>
           </section>
           <section style={{border:'1px solid #d7e4ec',borderRadius:12,padding:16}}>
-            <strong style={{color:'#003c70'}}>3. Perustelut ja lähteet – miksi juuri tämä?</strong>
+            <strong style={{color:'#003c70'}}>Miksi suosittelemme tätä?</strong>
             <p style={{margin:'8px 0',lineHeight:1.6}}>Ehdotus perustuu yllä kuvattuun oletettuun tilanteeseen. Ennen toteutusta varmista alkuperäinen lähde, ajanjakso, vertailutaso ja vaikutus matkakyselyihin.</p>
             <p style={{margin:'0',fontSize:13,color:'#567a91'}}>Lähde: {p.sourceUrl??'Ei todennettua lähdettä (esimerkki)'} · Havaittu: {p.observedAt??'Ei mittauspäivää'} · Luotettavuus: {p.confidence}</p>
           </section>
         </div>
-        <p style={{fontSize:13,color:'#668093'}}>Luotettavuus: matala · lähde ja oikea mittausdata puuttuvat (esimerkki)</p>
+        <details style={{border:'1px solid #d7e4ec',borderRadius:10,padding:'12px 16px',marginBottom:15}}>
+          <summary style={{cursor:'pointer',fontWeight:700,color:'#003c70'}}>Näytä tarkemmat tiedot ja termien selitykset</summary>
+          <p style={{fontSize:14,lineHeight:1.6}}>Hakujen klikkausosuus (CTR) kertoo, kuinka suuri osa hakutuloksen näyttökerroista johti klikkaukseen. Se ei yksin osoita, että sivussa on ongelma: hakusana, sijoitus ja vertailuajankohta pitää huomioida.</p>
+          <p style={{fontSize:14,lineHeight:1.6}}>Käyttäjälle näytetään todellisessa havainnossa myös ajanjakso, vertailuluvut, lähde ja se, mitä johtopäätöksestä ei vielä tiedetä.</p>
+          <p style={{fontSize:13,color:'#567a91'}}>Tämän mallihavainnon luotettavuus on matala: mitattua lähdetietoa ei ole.</p>
+        </details>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12,margin:'18px 0'}}>
           <label style={{fontSize:13,fontWeight:700}}>Vastuuhenkilö
             <input value={p.owner??''} onChange={e=>update(p.id,{owner:e.target.value.slice(0,100)})} placeholder="Nimi tai tiimi" style={{display:'block',width:'100%',boxSizing:'border-box',padding:10,marginTop:5}}/>
