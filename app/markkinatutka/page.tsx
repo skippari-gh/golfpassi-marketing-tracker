@@ -1,3 +1,4 @@
+import MarkkinatutkaViewSwitch from './MarkkinatutkaViewSwitch'
 import Link from 'next/link'
 export const dynamic = 'force-static'
 
@@ -29,6 +30,7 @@ export default function MarketIntelligencePreview() {
     <aside role="status" style={{ margin:'18px 0 26px', background:'#fff7e9', border:'1px solid #efc586', borderRadius:12, padding:'14px 18px', lineHeight:1.5, fontSize:14 }}>
       <strong>Esikatselu – esimerkkitietoja.</strong> Alla olevat tehtävät ja luvut eivät perustu Golfpassin todelliseen analytiikkaan. Automaattista tehtävien tallennusta, julkaisua tai kilpailijatietojen keruuta ei ole kytketty päälle.
     </aside>
+    <MarkkinatutkaViewSwitch professional={<>
     <section aria-label="Tilannekuva" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:14 }}>
       {metrics.map(m=><article key={m.label} style={{ background:C.bg, border:'1px solid '+C.border, borderRadius:16, padding:22 }}>
         <strong style={{ display:'block', fontSize:38, lineHeight:1, color:C.navy, marginBottom:10 }}>{m.value}</strong>
@@ -97,5 +99,6 @@ export default function MarketIntelligencePreview() {
         </section>
       </div>
     </section>
+    </>} />
   </main>
 }
