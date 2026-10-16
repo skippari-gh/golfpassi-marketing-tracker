@@ -366,6 +366,9 @@ export default async function TripsPage({
                           ›
                         </span>
                         {destinationNameWithDurations(destination.name, destination.trips)}
+                        {destination.trips.every((trip) => trip.status === 'full') && (
+                          <span className="trip-full-label" style={{ marginLeft: 8, fontWeight: 700 }}>(Täynnä)</span>
+                        )}
                         {firstSevenDayUrl(destination) && (
                           <a
                             className="trip-site-link"
@@ -420,8 +423,7 @@ export default async function TripsPage({
                         </Link>
                       </div>
 
-                      {destination.trips.length > 1 &&
-                        destination.trips.map((departure) => (
+                      {destination.trips.map((departure) => (
                           <div
                             className="trip-departure-list-row"
                             key={departure.id}
@@ -431,6 +433,9 @@ export default async function TripsPage({
                               href={`/trips/${departure.id}`}
                             >
                               {nameWithDuration(departure.name, departure.start_date, departure.end_date)}
+                              {departure.status === 'full' && (
+                                <span className="trip-full-label" style={{ marginLeft: 8, fontWeight: 700 }}>(Täynnä)</span>
+                              )}
                             </Link>
 
                             <span>{departure.country}</span>
