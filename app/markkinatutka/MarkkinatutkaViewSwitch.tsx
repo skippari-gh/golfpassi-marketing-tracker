@@ -4,11 +4,13 @@ import {useState,type ReactNode} from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { seoOpportunityToInsight, type MarketingInsight, type MeasuredSeoOpportunity } from '../../lib/marketing-insight-model'
 import Link from 'next/link'
+import type { DestinationSeoGroup } from '../../lib/destination-seo-groups'
 
 
 export default function MarkkinatutkaViewSwitch({professional}:{professional:ReactNode}){
  const [view,setView]=useState<'overview'|'workbench'>('overview')
  const [measured,setMeasured]=useState<MarketingInsight[]|null>(null)
+ const [destinations,setDestinations]=useState<DestinationSeoGroup[]>([])
  const [fetching,setFetching]=useState(false)
  const [error,setError]=useState('')
  const [period,setPeriod]=useState('')
@@ -27,8 +29,9 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
    if(!response.ok)throw new Error(String(report.error||'Tietojen hakeminen epäonnistui.'))
    const dateRange=String(report.startDate)+'–'+String(report.endDate)
    setPeriod(dateRange)
+   setDestinations(Array.isArray(report.destinationGroups)?report.destinationGroups:[])
    setMeasured((report.opportunities as MeasuredSeoOpportunity[]).map(x=>seoOpportunityToInsight(x,dateRange,String(report.property))))
-  }catch(e){setMeasured(null);setError(e instanceof Error?e.message:'Tietojen haku epäonnistui.')}
+  }catch(e){setMeasured(null);setDestinations([]);setError(e instanceof Error?e.message:'Tietojen haku epäonnistui.')}
   finally{setFetching(false)}
  }
  return <div>
@@ -44,12 +47,12 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
    {error&&<p role="alert">{error.includes('Search Console -yhteys')?'Google-hakutietojen yhteys odottaa määritystä testiympäristöön.':error.includes('Kirjautuminen tai käyttöoikeus')?'Kirjautuminen ei ole voimassa tai käyttöoikeus puuttuu.':error} <Link href="/markkinatutka/seo">Avaa kirjautuminen / SEO-työkalu →</Link></p>}
    {measured&&<p role="status">Google Search Console · {period} · {measured.length} tarkistettavaa havaintoa. Tämä ei mittaa suoraan myyntivaikutusta.</p>}
   </section>
-  {view==='workbench'? <>{measured!==null&&<MeasuredInsights insights={measured} detailed/>}<details open={measured===null} style={{marginTop:20}}><summary style={{color:'#003c70',fontWeight:700,cursor:'pointer'}}>Työpöydän malliesimerkit ja työkalut</summary><p style={{fontSize:13}}>Seuraavat esimerkit eivät perustu mittauksiin.</p>{professional}</details></> :
+  {view==='workbench'? <>{measured!==null&&<DestinationInsights destinations={destinations} detailed/>}{measured!==null&&<MeasuredInsights insights={measured} detailed/>}<details open={measured===null} style={{marginTop:20}}><summary style={{color:'#003c70',fontWeight:700,cursor:'pointer'}}>Työpöydän malliesimerkit ja työkalut</summary><p style={{fontSize:13}}>Seuraavat esimerkit eivät perustu mittauksiin.</p>{professional}</details></> :
    <section aria-label="Johdon yhteenveto">
     <h2 style={{color:'#003c70',fontSize:25,margin:'10px 0'}}>Tärkeimmät huomiot päätöksenteon tueksi</h2>
     <p style={{color:'#637b8f',lineHeight:1.6}}>{measured===null?'Alla on malliesimerkkejä. Hae mitatut SEO-havainnot yllä olevalla painikkeella.':'Alla näkyvät mitatut SEO-havainnot. Muut esimerkit löytyvät erikseen avattavasta osiosta.'}</p>
     <div style={{display:'grid',gap:14}}>
-     {measured!==null&&<MeasuredInsights insights={measured}/>}
+     {measured!==null&&<DestinationInsights destinations={destinations}/>}{measured!==null&&<details><summary style={{cursor:'pointer',fontWeight:700,color:'#003c70'}}>Näytä yksittäiset SEO-hakuhavainnot</summary><MeasuredInsights insights={measured}/></details>}
      {(measured===null)&&demoInsights.map((s,i)=><article key={s.id} style={{border:'1px solid #dbe7ef',background:'white',borderRadius:16,padding:'clamp(17px,3vw,25px)'}}>
       <small style={{fontWeight:700,color:'#547388'}}>{i+1}. {s.channel.toUpperCase()} · MALLIESIMERKKI</small>
       <h3 style={{fontSize:20,color:'#003c70',margin:'12px 0'}}>{s.title}</h3>
@@ -85,6 +88,26 @@ function MeasuredInsights({insights,detailed=false}:{insights:MarketingInsight[]
    <p><strong>Perustelu: </strong>{s.reason}</p>
    {detailed&&<details><summary style={{cursor:'pointer',fontWeight:700}}>Näytä lähde ja tarkemmat mittarit</summary><p>{s.detail}</p><p>Lähde: {s.source} · Ajanjakso: {s.observedPeriod}</p></details>}
    <Link href={s.href} style={{color:'#003c70',fontWeight:700}}>Tarkista SEO-sivulla →</Link>
+  </article>)}
+ </section>
+}
+
+function DestinationInsights({destinations,detailed=false}:{destinations:DestinationSeoGroup[];detailed?:boolean}){
+ return <section aria-label="Matkakohteiden SEO-suositukset" style={{display:'grid',gap:12,margin:'18px 0'}}>
+  <h3 style={{color:'#003c70',margin:0}}>Matkakohteiden tärkeimmät mahdollisuudet</h3>
+  {destinations.length===0&&<p>Hakuaineistosta ei tunnistettu vielä kohdekohtaisia kokonaisuuksia. Tarkastele yksittäisiä hakuhavaintoja.</p>}
+  {destinations.map(group=><article key={group.name} style={{padding:20,background:'white',border:'1px solid #cbdde7',borderRadius:15}}>
+   <small style={{fontWeight:700,color:'#537188'}}>MITATTU SEO-AINEISTO · TARKISTETTAVA SUOSITUS</small>
+   <h4 style={{fontSize:21,color:'#003c70',margin:'10px 0'}}>{group.name}</h4>
+   <p><strong>Mitä havaittiin?</strong> {group.queryCount} hakukysely–sivu-havaintoa, esimerkiksi {group.examples.join(', ')}.</p>
+   <p style={{background:'#fff7ef',borderLeft:'4px solid #ff8200',borderRadius:8,padding:12}}><strong>Mitä kannattaa tehdä?</strong> {group.recommendation}</p>
+   <p><strong>Miksi?</strong> Havaituissa hakutuloksissa on mahdollisuuksia tarkistaa sisällön osuvuutta ja löydettävyyttä. Vaikutusta ei ole vielä vahvistettu.</p>
+   <details open={detailed}><summary style={{cursor:'pointer',fontWeight:700,color:'#003c70'}}>Tarkemmat luvut ja lähteet</summary>
+    <p>Poimituissa riveissä {group.impressions.toLocaleString('fi-FI')} näyttökertaa ja {group.clicks.toLocaleString('fi-FI')} klikkausta.</p>
+    <p>{group.caution}</p>
+    <ul>{group.pages.map(page=><li key={page}>{page}</li>)}</ul>
+   </details>
+   <Link href="/markkinatutka/seo" style={{fontWeight:700,color:'#003c70'}}>Avaa SEO-työkalu →</Link>
   </article>)}
  </section>
 }
