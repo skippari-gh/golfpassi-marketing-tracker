@@ -24,7 +24,7 @@ export default function ProtectedSeoReport() {
   const [message, setMessage] = useState('')
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(false)
-  const [comparisons,setComparisons]=useState<Record<string, { snapshot?:{title:string|null;description:string|null;h1:string[];h2:string[];excerpts:string[];fetchedAt:string};analysis?:{title:string;description:string;heading:string;note:string};error?:string;loading?:boolean;changePlan?:Array<{field:string;before:string;after:string;reason:string}>;planWarning?:string|null}>>({})
+  const [comparisons,setComparisons]=useState<Record<string, { snapshot?:{title:string|null;description:string|null;h1:string[];h2:string[];excerpts:string[];fetchedAt:string};analysis?:{title:string;description:string;heading:string;note:string};error?:string;loading?:boolean;changePlan?:Array<{field:string;before:string;after:string;reason:string}>;planWarning?:string|null;quality?:{status:string;summary:string;checks:Array<{label:string;ok:boolean;explanation:string}>}}>>({})
   async function inspectPage(item:Opportunity) {
     const id=item.query+'|'+item.page
     setComparisons(old=>({...old,[id]:{loading:true}}))
@@ -35,7 +35,7 @@ export default function ProtectedSeoReport() {
       const response=await fetch('/api/markkinatutka/page-analysis',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token},body:JSON.stringify({url:item.page,query:item.query,ctr:item.ctr,position:item.position})})
       const data=await response.json()
       if(!response.ok)throw new Error(data.error||'Analyysi epäonnistui')
-      setComparisons(old=>({...old,[id]:{snapshot:data.snapshot,analysis:data.analysis,changePlan:data.changePlan,planWarning:data.planWarning}}))
+      setComparisons(old=>({...old,[id]:{snapshot:data.snapshot,analysis:data.analysis,changePlan:data.changePlan,planWarning:data.planWarning,quality:data.quality}}))
     }catch(e){setComparisons(old=>({...old,[id]:{error:e instanceof Error?e.message:'Analyysi epäonnistui'}}))}
   }
 
@@ -114,6 +114,13 @@ export default function ProtectedSeoReport() {
           details: <><button type="button" disabled={!!comparisons[item.query+'|'+item.page]?.loading} onClick={()=>void inspectPage(item)} style={{padding:'10px 14px',background:'#003c70',color:'white',border:0,borderRadius:8,cursor:'pointer'}}>{comparisons[item.query+'|'+item.page]?.loading?'Luetaan sivua…':'Lue nykyinen sivu ja vertaa ehdotukseen'}</button>
           {comparisons[item.query+'|'+item.page]?.error&&<p role="alert">{comparisons[item.query+'|'+item.page]?.error}</p>}
           <SeoTextComparison snapshot={comparisons[item.query+'|'+item.page]?.snapshot} item={item} />
+          {comparisons[item.query+'|'+item.page]?.quality&&<section style={{margin:'14px 0',background:'#f6f9fb',padding:16,borderRadius:12,border:'1px solid #d3e3ed'}}>
+            <strong>Laadunvarmistus ennen muutosta</strong>
+            <p>{comparisons[item.query+'|'+item.page]?.quality?.summary}</p>
+            <ul style={{paddingLeft:19}}>
+              {comparisons[item.query+'|'+item.page]?.quality?.checks.map(check=><li key={check.label} style={{margin:'9px 0'}}><strong>{check.ok?'Tarkistettu: ':'Selvitettävä: '}{check.label}</strong> – {check.explanation}</li>)}
+            </ul>
+          </section>}
           {comparisons[item.query+'|'+item.page]?.planWarning&&<p role="status">Muutossuunnitelma vaatii tarkistuksen: {comparisons[item.query+'|'+item.page].planWarning}</p>}
           {!!comparisons[item.query+'|'+item.page]?.changePlan?.length&&<section style={{background:'#f0f7fb',padding:16,borderRadius:12,margin:'12px 0'}}>
             <strong>Muutosluonnokset tarkistettavaksi – ei julkaistu</strong>
