@@ -11,6 +11,7 @@ const examples: MarketingProposal[] = [
 export default function ProposalsPreview() {
   const [items,setItems]=useState(examples)
   const [notice,setNotice]=useState('')
+  const update=(id:string,patch:Partial<MarketingProposal>)=>setItems(old=>old.map(p=>p.id===id?{...p,...patch}:p))
   const act=(id:string,action:'review'|'approve'|'dismiss')=>{
     try {
       setItems(previous=>previous.map(p=>p.id===id?transitionProposal(p,{proposalId:id,action,actor:'esikatselun käyttäjä',timestamp:new Date().toISOString()}):p))
@@ -33,6 +34,23 @@ export default function ProposalsPreview() {
         <p><strong>Perustelu:</strong> {p.reason}</p>
         <p><strong>Ehdotus:</strong> {p.proposedAction}</p>
         <p style={{fontSize:13,color:'#668093'}}>Luotettavuus: matala · lähde ja oikea mittausdata puuttuvat (esimerkki)</p>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12,margin:'18px 0'}}>
+          <label style={{fontSize:13,fontWeight:700}}>Vastuuhenkilö
+            <input value={p.owner??''} onChange={e=>update(p.id,{owner:e.target.value.slice(0,100)})} placeholder="Nimi tai tiimi" style={{display:'block',width:'100%',boxSizing:'border-box',padding:10,marginTop:5}}/>
+          </label>
+          <label style={{fontSize:13,fontWeight:700}}>Määräpäivä
+            <input type="date" value={p.dueDate??''} onChange={e=>update(p.id,{dueDate:e.target.value||null})} style={{display:'block',width:'100%',boxSizing:'border-box',padding:10,marginTop:5}}/>
+          </label>
+          <label style={{fontSize:13,fontWeight:700}}>Onnistumisen mittari
+            <select value={p.outcome?.metric??''} onChange={e=>update(p.id,{outcome:e.target.value?{metric:e.target.value,baseline:null,after:null,measuredAt:null}:null})} style={{display:'block',width:'100%',padding:10,marginTop:5}}>
+              <option value="">Valitse mittari</option>
+              <option value="Orgaaniset klikkaukset">Orgaaniset klikkaukset</option>
+              <option value="CTR">CTR</option>
+              <option value="Matkakyselyt">Matkakyselyt</option>
+              <option value="Konversioaste">Konversioaste</option>
+            </select>
+          </label>
+        </div>
         <div style={{display:'flex',flexWrap:'wrap',gap:9,marginTop:17}}>
           <button disabled={p.status!=='suggested'} onClick={()=>act(p.id,'review')} style={{padding:'10px 14px'}}>Merkitse arvioiduksi</button>
           <button disabled={p.status!=='reviewed'} onClick={()=>act(p.id,'approve')} style={{padding:'10px 14px'}}>Hyväksy luonnos</button>
@@ -40,7 +58,8 @@ export default function ProposalsPreview() {
         </div>
         {p.status==='approved' && <div style={{marginTop:18,padding:16,background:'#eef7fa',borderRadius:10}}>
           <strong>Marketing Tracker -luonnos, ei tallennettu</strong>
-          <pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:13}}>{JSON.stringify(toMarketingActionDraft(p,new Date().toISOString().slice(0,10)),null,2)}</pre>
+          <p style={{fontSize:13}}>Vastuuhenkilö: {p.owner?.trim()||'Ei määritetty'} · Määräpäivä: {p.dueDate||'Ei määritetty'} · Mittari: {p.outcome?.metric||'Ei määritetty'}</p>
+          <pre style={{whiteSpace:'pre-wrap',fontFamily:'inherit',fontSize:13}}>{JSON.stringify(toMarketingActionDraft(p,p.dueDate||new Date().toISOString().slice(0,10)),null,2)}</pre>
         </div>}
       </article>)}
     </section>
