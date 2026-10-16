@@ -2,6 +2,7 @@
 
 import InsightCard from '../InsightCard'
 import { suggestSeoCopy } from '../../../lib/seo-copy-suggestions'
+import { seoOpportunityToInsight } from '../../../lib/marketing-insight-model'
 
 import { useEffect, useState } from 'react'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -116,17 +117,13 @@ export default function ProtectedSeoReport() {
       {report.opportunities.length === 0 && <p>Tarkistettavia mahdollisuuksia ei löytynyt valitulla sääntöjoukolla.</p>}
       <div style={{display:'grid',gap:14}}>
         {report.opportunities.map(item => <InsightCard key={item.query + item.page} insight={{
-          title: 'Hakusana ”' + item.query + '” tarjoaa tarkistettavaa',
-          analysis: item.position <= 10
-            ? 'Sivu saa hakunäyttöjä hyviltä sijoilta, mutta suhteellisen vähän klikkauksia. Hakutuloksen kiinnostavuutta kannattaa selvittää.'
-            : 'Sivu löytyy hakutuloksista, mutta keskimääräinen sijoitus voi rajoittaa kävijämääriä.',
-          action: item.position <= 10
-            ? 'Vertaa sivun otsikkoa ja hakutulostekstiä siihen, mitä hakija todennäköisesti etsii. Tarkista tulos eri kyselyillä ennen muutoksia.'
-            : 'Tarkista sivun sisältö ja hakijan tavoite. Selvitä, voisiko tärkeimpiin kysymyksiin vastata nykyistä paremmin.',
-          rationale: item.reason + ' Tiedot osoittavat mahdollisen parannuskohteen, eivät muutoksen varmaa vaikutusta.',
-          caveat: 'Search Console näyttää hakutulosten havaintoja, ei suoraan matkavarausten tai sisältömuutosten vaikutusta.',
-          source: 'Google Search Console: ' + report.property + ' · ' + report.startDate + '–' + report.endDate,
-          confidence: 'Sääntöpohjainen tarkistusehdotus, ei vahvistettu syy-yhteys',
+          title: seoOpportunityToInsight(item,report.startDate+'–'+report.endDate,report.property).title,
+          analysis: seoOpportunityToInsight(item,report.startDate+'–'+report.endDate,report.property).analysis,
+          action: seoOpportunityToInsight(item,report.startDate+'–'+report.endDate,report.property).action,
+          rationale: seoOpportunityToInsight(item,report.startDate+'–'+report.endDate,report.property).reason,
+          caveat: 'Mittaukset ovat oikeita vain onnistuneen Search Console -haun jälkeen. Sisältömuutoksen vaikutusta ei vielä tunneta.',
+          source: 'Google Search Console: '+report.property+' · '+report.startDate+'–'+report.endDate,
+          confidence: 'Mitattu hakudata, alustava tulkinta',
           details: <><button type="button" disabled={!!comparisons[item.query+'|'+item.page]?.loading} onClick={()=>void inspectPage(item)} style={{padding:'10px 14px',background:'#003c70',color:'white',border:0,borderRadius:8,cursor:'pointer'}}>{comparisons[item.query+'|'+item.page]?.loading?'Luetaan sivua…':'Lue nykyinen sivu ja vertaa ehdotukseen'}</button>
           {comparisons[item.query+'|'+item.page]?.error&&<p role="alert">{comparisons[item.query+'|'+item.page]?.error}</p>}
           <SeoTextComparison snapshot={comparisons[item.query+'|'+item.page]?.snapshot} item={item} />
