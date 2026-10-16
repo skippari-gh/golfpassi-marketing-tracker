@@ -8,7 +8,8 @@ import { useEffect, useState } from 'react'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 type Opportunity = { query: string; page: string; clicks: number; impressions: number; ctr: number; position: number; reason: string }
-type Report = { property: string; startDate: string; endDate: string; fetchedRows: number; opportunities: Opportunity[]; retrievedAt: string }
+type DestinationGroup = { name:string;clicks:number;impressions:number;queryCount:number;pages:string[];examples:string[];recommendation:string;caution:string }
+type Report = { property: string; startDate: string; endDate: string; fetchedRows: number; opportunities: Opportunity[]; destinationGroups?:DestinationGroup[]; retrievedAt: string }
 
 function browserClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -114,6 +115,22 @@ export default function ProtectedSeoReport() {
     {message && <p role="status">{message}</p>}
     {report && <div>
       <p><strong>Lähde:</strong> {report.property} · {report.startDate}–{report.endDate} · {nf.format(report.fetchedRows)} kysely-sivuriviä</p>
+      {!!report.destinationGroups?.length && <section aria-label="Kohdekohtaiset SEO-havainnot" style={{margin:'18px 0 26px'}}>
+        <h3 style={{color:'#003c70',fontSize:23}}>Mitä matkakohteissa kannattaa parantaa?</h3>
+        <p style={{fontSize:14}}>Yhteenveto oikeista hakuhavainnoista. Tarkemmat yksittäiset haut näkyvät tämän osion jälkeen.</p>
+        <div style={{display:'grid',gap:12}}>
+        {report.destinationGroups.map(group=><article key={group.name} style={{padding:18,border:'1px solid #cbdde7',borderRadius:12,background:'#fff'}}>
+          <h4 style={{fontSize:19,margin:'0 0 10px'}}>{group.name}</h4>
+          <p><strong>Mitä havaittiin?</strong> {group.queryCount} tarkistettavaa hakukysely–sivu-havaintoa. Esimerkiksi: {group.examples.join(', ')}.</p>
+          <p style={{background:'#fff8ef',borderLeft:'4px solid #ff8200',padding:12,borderRadius:7}}><strong>Mitä kannattaa tehdä?</strong> {group.recommendation}</p>
+          <details><summary style={{cursor:'pointer',fontWeight:700}}>Näytä lukujen rajaukset ja lähteet</summary>
+          <p>Havaintoriveissä {nf.format(group.impressions)} näyttökertaa ja {nf.format(group.clicks)} klikkausta. {group.pages.length} eri sivua.</p>
+          <p>{group.caution}</p>
+          <ul>{group.pages.map(page=><li key={page}>{page}</li>)}</ul>
+          </details>
+        </article>)}
+        </div>
+      </section>}
       {report.opportunities.length === 0 && <p>Tarkistettavia mahdollisuuksia ei löytynyt valitulla sääntöjoukolla.</p>}
       <div style={{display:'grid',gap:14}}>
         {report.opportunities.map(item => <InsightCard key={item.query + item.page} insight={{
