@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { identifySearchOpportunities } from '../../lib/search-console-analysis'
-import type { SearchConsoleRow } from '../../lib/search-console'
+import { identifySearchOpportunities } from '../../../../lib/search-console-analysis'
+import type { SearchConsoleRow } from '../../../lib/search-console'
 
 export const dynamic = 'force-static'
 
