@@ -29,7 +29,8 @@ export function identifySearchOpportunities(rows: SearchConsoleRow[], maxResults
       const lowCtr = row.ctr < 0.03 && row.position >= 3 && row.position <= 10
       const nearFirstPage = row.position > 10 && row.position <= 20
       if (!lowCtr && !nearFirstPage) return null
-      // Prefer meaningful demand and avoid overstating weak CTR when rank is unstable.\n      const priority = Math.round(Math.log1p(row.impressions) * (lowCtr ? 12 : 8) + Math.log1p(row.clicks) * 2)
+      // Prefer meaningful demand and avoid overstating weak CTR when rank is unstable.
+      const priority = Math.round(Math.log1p(row.impressions) * (lowCtr ? 12 : 8) + Math.log1p(row.clicks) * 2)
       return {
         ...row,
         reason: lowCtr
