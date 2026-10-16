@@ -1,5 +1,5 @@
 import { requireMarketingIntelligenceUser } from '../../../../lib/marketing-intelligence-auth'
-import { getSearchConsoleQueries } from '../../../../lib/search-console'
+import { getSearchConsoleQueries, getSearchConsoleDailyTotals } from '../../../../lib/search-console'
 import { identifySearchOpportunities } from '../../../../lib/search-console-analysis'
 import { groupSeoOpportunitiesByDestination } from '../../../../lib/destination-seo-groups'
 
@@ -25,11 +25,11 @@ export async function GET(request: Request) {
   start.setUTCDate(start.getUTCDate() - 27)
   const iso = (date: Date) => date.toISOString().slice(0, 10)
   try {
-    const rows = await getSearchConsoleQueries(iso(start), iso(end), 1000)
+    const [rows, daily] = await Promise.all([getSearchConsoleQueries(iso(start), iso(end), 1000),getSearchConsoleDailyTotals(iso(start),iso(end))])
     const opportunities = identifySearchOpportunities(rows, 20)
     return Response.json({
       property: process.env.GSC_SITE_URL, startDate: iso(start), endDate: iso(end),
-      fetchedRows: rows.length, opportunities,
+      fetchedRows: rows.length, opportunities, daily,
       destinationGroups: groupSeoOpportunitiesByDestination(opportunities),
       retrievedAt: new Date().toISOString(), source: 'google-search-console',
     }, { headers })
