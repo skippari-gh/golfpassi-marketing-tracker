@@ -1,5 +1,5 @@
-import { demoInsights } from './demo-insights'
 'use client'
+import { demoInsights } from './demo-insights'
 import {useState,type ReactNode} from 'react'
 import Link from 'next/link'
 
@@ -17,7 +17,7 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
     <h2 style={{color:'#003c70',fontSize:25,margin:'10px 0'}}>Tärkeimmät huomiot päätöksenteon tueksi</h2>
     <p style={{color:'#637b8f',lineHeight:1.6}}>Kolme esimerkkiä siitä, miten Markkinatutka kertoo mitä tapahtui, mitä kannattaa tehdä ja miksi. Oikeaa mittausdataa ei vielä käytetä.</p>
     <div style={{display:'grid',gap:14}}>
-     {demoInsights.map((s,i)=><article key={s.topic} style={{border:'1px solid #dbe7ef',background:'white',borderRadius:16,padding:'clamp(17px,3vw,25px)'}}>
+     {demoInsights.map((s,i)=><article key={s.id} style={{border:'1px solid #dbe7ef',background:'white',borderRadius:16,padding:'clamp(17px,3vw,25px)'}}>
       <small style={{fontWeight:700,color:'#547388'}}>{i+1}. {s.channel.toUpperCase()} · MALLIESIMERKKI</small>
       <h3 style={{fontSize:20,color:'#003c70',margin:'12px 0'}}>{s.title}</h3>
       <p style={{lineHeight:1.6}}><strong>Mitä havaittiin?</strong> {s.analysis}</p>
