@@ -1,6 +1,7 @@
 import { requireMarketingIntelligenceUser } from '../../../../lib/marketing-intelligence-auth'
 import { readGolfpassiPage } from '../../../../lib/golfpassi-page-reader'
 import { suggestSeoCopy } from '../../../../lib/seo-copy-suggestions'
+import { makeSeoChangePlan } from '../../../../lib/seo-change-plan'
 
 export const runtime='nodejs'
 export const dynamic='force-dynamic'
@@ -22,7 +23,11 @@ export async function POST(request:Request) {
       heading: snapshot.h1.length ? (snapshot.h1.some(h=>h.toLowerCase()===proposed.heading.toLowerCase())?'Pääotsikko vastaa ehdotusta':'Pääotsikko eroaa ehdotuksesta'):'Pääotsikkoa ei löytynyt',
       note:'Sivun sisältö luettiin, mutta matkatuotteiden tietoja tai SEO-muutoksen vaikutusta ei ole automaattisesti vahvistettu.'
     }
-    return Response.json({snapshot,proposed,analysis},{headers})
+    let changePlan: ReturnType<typeof makeSeoChangePlan> = []
+    let planWarning: string | null = null
+    try { changePlan=makeSeoChangePlan(snapshot,proposed,body.query) }
+    catch(error) { planWarning=error instanceof Error?error.message:'Muutossuunnitelmaa ei voitu laatia' }
+    return Response.json({snapshot,proposed,analysis,changePlan,planWarning},{headers})
   }catch(e){console.error('Public page analysis failed',e instanceof Error?e.name:'unknown')
     return Response.json({error:'Sivun lukeminen epäonnistui. Tarkista osoite ja sivun julkinen saatavuus.'},{status:422,headers})
   }
