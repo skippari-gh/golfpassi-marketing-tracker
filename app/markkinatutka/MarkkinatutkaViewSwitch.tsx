@@ -102,6 +102,7 @@ function DestinationInsights({destinations,detailed=false}:{destinations:Destina
    <p><strong>Mitä havaittiin?</strong> {group.queryCount} hakukysely–sivu-havaintoa, esimerkiksi {group.examples.join(', ')}.</p>
    <p style={{background:'#fff7ef',borderLeft:'4px solid #ff8200',borderRadius:8,padding:12}}><strong>Mitä kannattaa tehdä?</strong> {group.recommendation}</p>
    <p><strong>Miksi?</strong> Havaituissa hakutuloksissa on mahdollisuuksia tarkistaa sisällön osuvuutta ja löydettävyyttä. Vaikutusta ei ole vielä vahvistettu.</p>
+   <p><strong>Liiketoiminnallinen tärkeysjärjestys:</strong> Odottaa matkojen saatavuus-, kate- ja työmäärätietoja. Pelkkä hakunäkyvyys ei ratkaise kokonaisprioriteettia.</p>
    <details open={detailed}><summary style={{cursor:'pointer',fontWeight:700,color:'#003c70'}}>Tarkemmat luvut ja lähteet</summary>
     <p>Poimituissa riveissä {group.impressions.toLocaleString('fi-FI')} näyttökertaa ja {group.clicks.toLocaleString('fi-FI')} klikkausta.</p>
     <p>{group.caution}</p>
