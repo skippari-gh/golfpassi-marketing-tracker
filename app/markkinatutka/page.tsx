@@ -4,9 +4,9 @@ export const dynamic = 'force-static'
 // Design-only preview: all figures and task examples are fictional.
 // Nothing on this page writes to Marketing Tracker or accesses analytics.
 const tasks = [
-  { id:'01', channel:'SEO', priority:'Korkea', title:'Tarkista Portugalin kohdesivun hakutarkoitus', why:'Esimerkki: paljon hakunäyttöjä, mutta klikkausosuus jää pieneksi.', next:'Vertaa hakukyselyitä sivun otsikkoon ja sisältöön.', state:'Odottaa arviota', href:'/markkinatutka/seo' },
-  { id:'02', channel:'Kampanjat', priority:'Keskitaso', title:'Vertaa kevätlähtöjen kampanjaviestit', why:'Esimerkki: samanaikaisia matkoja tarjolla useilla toimijoilla.', next:'Tarkista kilpailijoiden matkasisällöt ja erottautumistekijät.', state:'Tutkittava', href:'/markkinatutka/kilpailijat' },
-  { id:'03', channel:'Vaikutus', priority:'Keskitaso', title:'Arvioi edellisen uutiskirjeen tulos', why:'Esimerkki: mittaa liikenteen lisäksi matkakyselyihin johtaneet käynnit.', next:'Vertaa tavoitteita toteutuneisiin tapahtumiin.', state:'Mittaus odottaa', href:'/analytics' },
+  { id:'01', channel:'SEO', priority:'Korkea', title:'Portugalin golfmatkojen hakutulosta kannattaa tarkistaa', analysis:'Esimerkkitilanteessa sivu näkyisi Google-haussa usein, mutta vain harva näkijä siirtyisi sivulle.', action:'Vertaa hakutuloksen otsikkoa ja tekstiä siihen, mitä Portugalin golfmatkoja etsivä haluaa tietää.', reason:'Jos sivu saa jo näkyvyyttä, hakutuloksen kiinnostavuuden parantaminen voi lisätä kävijöitä. Sijoitus ja hakukysely pitää silti tarkistaa ennen muutosta.', detail:'Tarvitaan Search Consolen hakukyselyt, näyttökerrat, klikkaukset, keskimääräinen sijoitus ja ajanjakson vertailu. Klikkausosuus (CTR) tarkoittaa näyttökertojen osuutta, joka johti klikkaukseen.', state:'Odottaa arviota', href:'/markkinatutka/seo' },
+  { id:'02', channel:'Kilpailijat', priority:'Keskitaso', title:'Kevätlähtöjen kilpailutilanne kannattaa vertailla', analysis:'Esimerkkitilanteessa kilpailevien matkanjärjestäjien tarjoukset voisivat osua samoille lähtöviikoille.', action:'Tarkista lähtöpäivät, pakettien sisältö ja lopulliset hinnat sekä Golfpassin erottuvat vahvuudet.', reason:'Pelkkä alkaen-hinta ei kerro, ovatko matkat vertailukelpoisia. Esimerkiksi lennot, yöpymiset ja green feet voivat erota.', detail:'Oikea johtopäätös edellyttää kilpailijan alkuperäistä tarjousosoitetta, havaintopäivää sekä ennen–jälkeen-vertailua. Automaattinen kilpailijakeruu ei ole vielä käytössä.', state:'Tutkittava', href:'/markkinatutka/kilpailijat' },
+  { id:'03', channel:'Vaikutus', priority:'Keskitaso', title:'Uutiskirjeen hyötyä kannattaa arvioida myös matkakyselyillä', analysis:'Esimerkkitilanteessa uutiskirje voisi tuoda paljon sivustokävijöitä, mutta niiden kaupallinen vaikutus jäisi epäselväksi.', action:'Vertaa uutiskirjeestä tulleita käyntejä ja niiden kautta syntyneitä matkakyselyitä, jos seuranta on käytettävissä.', reason:'Avaus- ja klikkausluvut kertovat kiinnostuksesta, mutta eivät yksin siitä, syntyykö matkakyselyitä.', detail:'Tarvitaan kampanjalinkkien tunnisteet, GA4:n käynnit ja luotettavasti määritellyt matkakyselytapahtumat. Esimerkistä ei ole oikeita mittauslukuja.', state:'Mittaus odottaa', href:'/markkinatutka/tehtavat' },
 ]
 const metrics = [
   { value:'3', label:'Ehdotusta arvioitavaksi', detail:'Mallitehtäviä' },
@@ -48,9 +48,26 @@ export default function MarketIntelligencePreview() {
               <small style={{ color:C.muted, fontWeight:700, letterSpacing:1 }}>{t.id} · {t.channel}</small>
               <small style={{ background:t.priority==='Korkea'?'#fff0df':'#eef4f8', color:C.navy, padding:'5px 9px', borderRadius:8 }}>{t.priority} prioriteetti</small>
             </div>
-            <h3 style={{ fontSize:18, lineHeight:1.3, color:C.navy, margin:'13px 0 10px' }}>{t.title}</h3>
-            <p style={{ fontSize:14, lineHeight:1.55, margin:'0 0 8px' }}>{t.why}</p>
-            <p style={{ fontSize:14, lineHeight:1.55, margin:'0 0 15px' }}><strong>Ehdotettu toimi:</strong> {t.next}</p>
+            <h3 style={{ fontSize:18, lineHeight:1.35, color:C.navy, margin:'13px 0 16px' }}>{t.title}</h3>
+            <div style={{ display:'grid', gap:12 }}>
+              <section style={{ background:'#eff7fc', borderRadius:11, padding:'13px 15px' }}>
+                <strong style={{ display:'block', color:C.navy, fontSize:14 }}>Mitä tämä tarkoittaa?</strong>
+                <p style={{ fontSize:14, lineHeight:1.6, margin:'6px 0 0' }}>{t.analysis}</p>
+              </section>
+              <section style={{ background:'#fff8ef', borderLeft:'4px solid '+C.orange, borderRadius:9, padding:'13px 15px' }}>
+                <strong style={{ display:'block', color:C.navy, fontSize:14 }}>Mitä kannattaa tehdä?</strong>
+                <p style={{ fontSize:14, lineHeight:1.6, margin:'6px 0 0' }}>{t.action}</p>
+              </section>
+              <section style={{ padding:'2px 3px 6px' }}>
+                <strong style={{ display:'block', color:C.navy, fontSize:14 }}>Miksi suosittelemme tätä?</strong>
+                <p style={{ fontSize:14, lineHeight:1.6, margin:'6px 0 0' }}>{t.reason}</p>
+              </section>
+              <details style={{ borderTop:'1px solid '+C.border, padding:'12px 3px' }}>
+                <summary style={{ cursor:'pointer', color:C.navy, fontSize:14, fontWeight:700 }}>Näytä lähteet ja tarkemmat tiedot</summary>
+                <p style={{ fontSize:13, lineHeight:1.65, color:C.muted }}>{t.detail}</p>
+                <p style={{ fontSize:13, color:C.muted, marginBottom:0 }}>Esimerkki, ei vahvistettua havaintoa. Lähde ja mittauspäivä puuttuvat.</p>
+              </details>
+            </div>
             <div style={{ borderTop:'1px solid '+C.border, paddingTop:12, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:8 }}>
               <small style={{ color:C.muted }}>{t.state}</small>
               <Link href={t.href} style={{ color:C.navy, fontSize:14, fontWeight:700 }}>Tutki havaintoa →</Link>
