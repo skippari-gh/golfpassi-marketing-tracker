@@ -1,3 +1,4 @@
+import ProtectedSeoReport from './ProtectedSeoReport'
 import Link from 'next/link'
 import { identifySearchOpportunities } from '../../../lib/search-console-analysis'
 import type { SearchConsoleRow } from '../../../lib/search-console'
@@ -26,6 +27,7 @@ export default function SeoPreview() {
       <strong>ESIMERKKIDATA – EI OIKEITA GOLFPASSIN HAKUTULOKSIA.</strong>
       <p style={{ marginBottom: 0 }}>Search Console -tietojen käyttö odottaa palvelinpuolen tunnistautumista ja yhteyden testausta. Sivulla ei tehdä Search Console -API-kutsuja.</p>
     </div>
+    <ProtectedSeoReport />
     <section aria-label="Hakutermien analyysi" style={{ display: 'grid', gap: 15 }}>
       {opportunities.map(row => <article key={row.query + row.page} style={{ border: '1px solid #cddce6', borderRadius: 14, padding: 20 }}>
         <div style={{ fontSize: 12, textTransform: 'uppercase', color: '#38738c' }}>Tarkistettava mahdollisuus</div>
