@@ -8,12 +8,14 @@ import type { DestinationSeoGroup } from '../../lib/destination-seo-groups'
 
 
 type SearchDay={date:string;clicks:number;impressions:number;ctr:number;position:number}
+type Ga4Report={status:string;daily?:Array<{date:string;sessions:number;activeUsers:number;keyEvents:number}>;keyEvents?:Array<{name:string;keyEvents:number}>}
 export default function MarkkinatutkaViewSwitch({professional}:{professional:ReactNode}){
  const [view,setView]=useState<'overview'|'workbench'>('overview')
  const [measured,setMeasured]=useState<MarketingInsight[]|null>(null)
  const [destinations,setDestinations]=useState<DestinationSeoGroup[]>([])
  const [daily,setDaily]=useState<SearchDay[]>([])
  const [previousDaily,setPreviousDaily]=useState<SearchDay[]>([])
+ const [ga4,setGa4]=useState<Ga4Report|null>(null)
  const [fetching,setFetching]=useState(false)
  const [error,setError]=useState('')
  const [period,setPeriod]=useState('')
@@ -34,9 +36,10 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
    setPeriod(dateRange)
    setDaily(Array.isArray(report.daily)?report.daily:[])
    setPreviousDaily(Array.isArray(report.previousDaily)?report.previousDaily:[])
+   setGa4(report.ga4||{status:'not-configured'})
    setDestinations(Array.isArray(report.destinationGroups)?report.destinationGroups:[])
    setMeasured((report.opportunities as MeasuredSeoOpportunity[]).map(x=>seoOpportunityToInsight(x,dateRange,String(report.property))))
-  }catch(e){setMeasured(null);setDestinations([]);setDaily([]);setPreviousDaily([]);setError(e instanceof Error?e.message:'Tietojen haku epäonnistui.')}
+  }catch(e){setMeasured(null);setDestinations([]);setDaily([]);setPreviousDaily([]);setGa4(null);setError(e instanceof Error?e.message:'Tietojen haku epäonnistui.')}
   finally{setFetching(false)}
  }
  return <div>
@@ -54,6 +57,7 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
    <div id="markkinatutka-tulokset" style={{borderTop:'1px solid #d5e6ef',marginTop:22,paddingTop:18}}>
      <strong style={{color:'#003c70',fontSize:17}}>{measured===null?'Tulokset näkyvät tässä haun jälkeen':'Haun tulokset ja suositukset'}</strong>
      {measured!==null&&<SearchTrends daily={daily} previousDaily={previousDaily}/>}
+     {measured!==null&&<Ga4OrganicSummary ga4={ga4}/>}
      {measured===null&&<p style={{color:'#637b8f',margin:'8px 0 0',fontSize:14}}>Hakua ei ole vielä tehty. Alla on erikseen merkittyjä malliesimerkkejä, jotta näet millaisia suosituksia palvelu tarjoaa.</p>}
 
   {view==='workbench'? <>{measured!==null&&<DestinationInsights destinations={destinations} detailed/>}{measured!==null&&<MeasuredInsights insights={measured} detailed/>}<details open={measured===null} style={{marginTop:20}}><summary style={{color:'#003c70',fontWeight:700,cursor:'pointer'}}>Työpöydän malliesimerkit ja työkalut</summary><p style={{fontSize:13}}>Seuraavat esimerkit eivät perustu mittauksiin.</p>{professional}</details></> :
@@ -157,4 +161,23 @@ function TrendPlot({data,field,label,total,change,color}:{data:SearchDay[];field
   </svg>
   <div style={{display:'flex',justifyContent:'space-between',fontSize:12,color:'#60798a'}}><span>{data[0].date.slice(5)}</span><span>{data[data.length-1].date.slice(5)}</span></div>
  </div>
+}
+
+function Ga4OrganicSummary({ga4}:{ga4:Ga4Report|null}){
+ if(!ga4||ga4.status!=='ready'||!ga4.daily)return <section aria-label="GA4 orgaaninen liikenne" style={{padding:'14px 0',borderTop:'1px solid #d9e6ef'}}>
+  <h3 style={{fontSize:20,color:'#003c70'}}>Orgaaninen liikenne ja avaintapahtumat (GA4)</h3>
+  <p style={{color:'#637b8f',fontSize:14}}>{ga4?.status==='not-configured'?'GA4:n lukuoikeutta ei ole vielä määritetty tähän esikatseluympäristöön. Search Console -tiedot ovat käytettävissä.':'GA4-tietoja ei saatu haettua. Search Console -tiedot näkyvät silti normaalisti.'}</p>
+ </section>
+ const total=(key:'sessions'|'activeUsers'|'keyEvents')=>ga4.daily!.reduce((sum,day)=>sum+day[key],0).toLocaleString('fi-FI')
+ return <section aria-label="GA4 orgaaninen liikenne" style={{borderTop:'1px solid #d9e6ef',paddingTop:18,marginTop:20}}>
+  <h3 style={{fontSize:20,color:'#003c70'}}>Orgaaninen liikenne ja avaintapahtumat (GA4)</h3>
+  <p style={{fontSize:13,color:'#61798a'}}>Lähde: Google Analytics 4 · kanava Organic Search. GA4:n istunnot ja Search Consolen klikkaukset mittaavat eri asioita.</p>
+  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:10}}>
+   {([['Istunnot',total('sessions')],['Aktiiviset käyttäjät',total('activeUsers')],['Avaintapahtumat',total('keyEvents')]] as const).map(([label,value])=><div key={label} style={{padding:14,background:'#f4f8fc',borderRadius:10}}><small>{label}</small><strong style={{display:'block',fontSize:23,color:'#003c70'}}>{value}</strong></div>)}
+  </div>
+  <details style={{marginTop:12}}><summary style={{cursor:'pointer',fontWeight:700}}>Näytä GA4:n avaintapahtumat</summary>
+   <p style={{fontSize:13}}>Tapahtumien nimet tulevat GA4:stä. Niitä ei tulkita automaattisesti varatuiksi matkoiksi tai matkakyselyiksi.</p>
+   {(ga4.keyEvents||[]).length===0?<p>Avaintapahtumia ei löytynyt tällä rajauksella.</p>:<ul>{ga4.keyEvents!.slice(0,10).map(event=><li key={event.name}>{event.name}: {event.keyEvents.toLocaleString('fi-FI')}</li>)}</ul>}
+  </details>
+ </section>
 }
