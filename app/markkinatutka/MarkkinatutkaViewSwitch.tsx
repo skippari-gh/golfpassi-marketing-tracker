@@ -41,16 +41,16 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
    <strong style={{color:'#003c70'}}>Ajantasaiset SEO-havainnot</strong>
    <p style={{margin:'9px 0',lineHeight:1.55}}>Hae Googlen mitatut hakutiedot. Haussa käytetään samaa suojattua rajapintaa kuin SEO-työkalussa. Muut markkinoinnin osa-alueet ovat vielä esimerkkisisältöä.</p>
    <button type="button" onClick={()=>void refreshMeasured()} disabled={fetching} style={{padding:'10px 15px',background:'#003c70',border:0,color:'white',borderRadius:9}}>{fetching?'Haetaan…':'Hae ajantasaiset havainnot'}</button>
-   {error&&<p role="alert">{error} <Link href="/markkinatutka/seo">Avaa kirjautuminen / SEO-työkalu →</Link></p>}
+   {error&&<p role="alert">{error.includes('Search Console -yhteys')?'Google-hakutietojen yhteys odottaa määritystä testiympäristöön.':error.includes('Kirjautuminen tai käyttöoikeus')?'Kirjautuminen ei ole voimassa tai käyttöoikeus puuttuu.':error} <Link href="/markkinatutka/seo">Avaa kirjautuminen / SEO-työkalu →</Link></p>}
    {measured&&<p role="status">Google Search Console · {period} · {measured.length} tarkistettavaa havaintoa. Tämä ei mittaa suoraan myyntivaikutusta.</p>}
   </section>
-  {view==='workbench'? <>{measured!==null&&<MeasuredInsights insights={measured} detailed/>}{professional}</> :
+  {view==='workbench'? <>{measured!==null&&<MeasuredInsights insights={measured} detailed/>}<details open={measured===null} style={{marginTop:20}}><summary style={{color:'#003c70',fontWeight:700,cursor:'pointer'}}>Työpöydän malliesimerkit ja työkalut</summary><p style={{fontSize:13}}>Seuraavat esimerkit eivät perustu mittauksiin.</p>{professional}</details></> :
    <section aria-label="Johdon yhteenveto">
     <h2 style={{color:'#003c70',fontSize:25,margin:'10px 0'}}>Tärkeimmät huomiot päätöksenteon tueksi</h2>
-    <p style={{color:'#637b8f',lineHeight:1.6}}>Kolme esimerkkiä siitä, miten Markkinatutka kertoo mitä tapahtui, mitä kannattaa tehdä ja miksi. Oikeaa mittausdataa ei vielä käytetä.</p>
+    <p style={{color:'#637b8f',lineHeight:1.6}}>{measured===null?'Alla on malliesimerkkejä. Hae mitatut SEO-havainnot yllä olevalla painikkeella.':'Alla näkyvät mitatut SEO-havainnot. Muut esimerkit löytyvät erikseen avattavasta osiosta.'}</p>
     <div style={{display:'grid',gap:14}}>
      {measured!==null&&<MeasuredInsights insights={measured}/>}
-     {demoInsights.map((s,i)=><article key={s.id} style={{border:'1px solid #dbe7ef',background:'white',borderRadius:16,padding:'clamp(17px,3vw,25px)'}}>
+     {(measured===null)&&demoInsights.map((s,i)=><article key={s.id} style={{border:'1px solid #dbe7ef',background:'white',borderRadius:16,padding:'clamp(17px,3vw,25px)'}}>
       <small style={{fontWeight:700,color:'#547388'}}>{i+1}. {s.channel.toUpperCase()} · MALLIESIMERKKI</small>
       <h3 style={{fontSize:20,color:'#003c70',margin:'12px 0'}}>{s.title}</h3>
       <p style={{lineHeight:1.6}}><strong>Mitä havaittiin?</strong> {s.analysis}</p>
@@ -61,6 +61,13 @@ export default function MarkkinatutkaViewSwitch({professional}:{professional:Rea
       <Link href={s.href} style={{color:'#003c70',fontWeight:700}}>Tutustu analyysiin ja lähteisiin →</Link>
      </article>)}
     </div>
+    {measured!==null&&<details style={{border:'1px solid #dbe7ef',padding:18,borderRadius:12,marginTop:18}}>
+     <summary style={{cursor:'pointer',fontWeight:700,color:'#003c70'}}>Näytä malliesimerkit muista markkinoinnin aiheista</summary>
+     <p>Seuraavat havainnot ovat täysin kuvitteellisia, eivät Golfpassin tuloksia.</p>
+     {demoInsights.filter(s=>s.channel!=='SEO').map(s=><article key={s.id} style={{padding:'10px 0',borderTop:'1px solid #dbe7ef'}}>
+      <strong>{s.title}</strong><p>{s.action}</p><Link href={s.href}>Avaa esimerkin työalue →</Link>
+     </article>)}
+    </details>}
     <p style={{fontSize:13,color:'#637b8f',marginTop:20}}>Vaihtamalla Työpöytä-näkymään näet myös yksityiskohtaiset tarkistukset, tehtäväpolut ja mittaussuunnitelmat.</p>
    </section>}
  </div>
