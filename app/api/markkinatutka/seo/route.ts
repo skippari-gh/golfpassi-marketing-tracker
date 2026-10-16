@@ -1,6 +1,7 @@
 import { requireMarketingIntelligenceUser } from '../../../../lib/marketing-intelligence-auth'
 import { getSearchConsoleQueries } from '../../../../lib/search-console'
 import { identifySearchOpportunities } from '../../../../lib/search-console-analysis'
+import { groupSeoOpportunitiesByDestination } from '../../../../lib/destination-seo-groups'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
     return Response.json({
       property: process.env.GSC_SITE_URL, startDate: iso(start), endDate: iso(end),
       fetchedRows: rows.length, opportunities,
+      destinationGroups: groupSeoOpportunitiesByDestination(opportunities),
       retrievedAt: new Date().toISOString(), source: 'google-search-console',
     }, { headers })
   } catch (error) {
