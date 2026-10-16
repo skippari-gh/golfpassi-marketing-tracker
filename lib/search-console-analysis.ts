@@ -26,10 +26,10 @@ export function identifySearchOpportunities(rows: SearchConsoleRow[], maxResults
       row.query.trim().length > 0 && !brandQuery.test(row.query) && row.page.startsWith('https://')
     )
     .map(row => {
-      const lowCtr = row.ctr < 0.03 && row.position <= 10
+      const lowCtr = row.ctr < 0.03 && row.position >= 3 && row.position <= 10
       const nearFirstPage = row.position > 10 && row.position <= 20
       if (!lowCtr && !nearFirstPage) return null
-      const priority = Math.round(Math.log1p(row.impressions) * (lowCtr ? 12 : 8))
+      // Prefer meaningful demand and avoid overstating weak CTR when rank is unstable.\n      const priority = Math.round(Math.log1p(row.impressions) * (lowCtr ? 12 : 8) + Math.log1p(row.clicks) * 2)
       return {
         ...row,
         reason: lowCtr
@@ -39,6 +39,19 @@ export function identifySearchOpportunities(rows: SearchConsoleRow[], maxResults
       }
     })
     .filter((row): row is SearchOpportunity => row !== null)
-  return candidates.sort((a, b) => b.priority - a.priority || b.impressions - a.impressions)
-    .slice(0, Math.max(1, Math.min(100, Math.floor(maxResults))))
+  // Diversify actions: a page with many query variants should not bury other destinations.
+  const selected: SearchOpportunity[] = []
+  const perPage = new Map<string, number>()
+  const seenQueries = new Set<string>()
+  const limit = Math.max(1, Math.min(100, Math.floor(maxResults)))
+  for (const item of candidates.sort((a, b) => b.priority - a.priority || b.impressions - a.impressions)) {
+    const pageKey = item.page.replace(/[?#].*$/, '').replace(/\/$/, '')
+    const queryKey = item.query.toLocaleLowerCase('fi-FI').trim().replace(/\s+/g, ' ')
+    if ((perPage.get(pageKey) || 0) >= 2 || seenQueries.has(queryKey)) continue
+    selected.push(item)
+    perPage.set(pageKey, (perPage.get(pageKey) || 0) + 1)
+    seenQueries.add(queryKey)
+    if (selected.length >= limit) break
+  }
+  return selected
 }
