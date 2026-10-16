@@ -23,13 +23,18 @@ export async function GET(request: Request) {
   end.setUTCDate(end.getUTCDate() - 3)
   const start = new Date(end)
   start.setUTCDate(start.getUTCDate() - 27)
+  const previousEnd = new Date(start)
+  previousEnd.setUTCDate(previousEnd.getUTCDate() - 1)
+  const previousStart = new Date(previousEnd)
+  previousStart.setUTCDate(previousStart.getUTCDate() - 27)
   const iso = (date: Date) => date.toISOString().slice(0, 10)
   try {
-    const [rows, daily] = await Promise.all([getSearchConsoleQueries(iso(start), iso(end), 1000),getSearchConsoleDailyTotals(iso(start),iso(end))])
+    const [rows, daily, previousDaily] = await Promise.all([getSearchConsoleQueries(iso(start), iso(end), 1000),getSearchConsoleDailyTotals(iso(start),iso(end)),getSearchConsoleDailyTotals(iso(previousStart),iso(previousEnd))])
     const opportunities = identifySearchOpportunities(rows, 20)
     return Response.json({
       property: process.env.GSC_SITE_URL, startDate: iso(start), endDate: iso(end),
       fetchedRows: rows.length, opportunities, daily,
+      previousDaily, previousStartDate:iso(previousStart), previousEndDate:iso(previousEnd),
       destinationGroups: groupSeoOpportunitiesByDestination(opportunities),
       retrievedAt: new Date().toISOString(), source: 'google-search-console',
     }, { headers })
