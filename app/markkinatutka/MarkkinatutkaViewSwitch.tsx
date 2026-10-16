@@ -8,7 +8,8 @@ import type { DestinationSeoGroup } from '../../lib/destination-seo-groups'
 
 
 type SearchDay={date:string;clicks:number;impressions:number;ctr:number;position:number}
-type Ga4Report={status:string;daily?:Array<{date:string;sessions:number;activeUsers:number;keyEvents:number}>;previousDaily?:Array<{date:string;sessions:number;activeUsers:number;keyEvents:number}>;keyEvents?:Array<{name:string;keyEvents:number}>}
+type Ga4Totals={sessions:number;activeUsers:number;keyEvents:number}
+type Ga4Report={status:string;daily?:Array<{date:string;sessions:number;activeUsers:number;keyEvents:number}>;previousDaily?:Array<{date:string;sessions:number;activeUsers:number;keyEvents:number}>;totals?:Ga4Totals;previousTotals?:Ga4Totals;keyEvents?:Array<{name:string;keyEvents:number}>}
 export default function MarkkinatutkaViewSwitch({professional}:{professional:ReactNode}){
  const [view,setView]=useState<'overview'|'workbench'>('overview')
  const [measured,setMeasured]=useState<MarketingInsight[]|null>(null)
@@ -169,10 +170,10 @@ function Ga4OrganicSummary({ga4}:{ga4:Ga4Report|null}){
   <p style={{color:'#637b8f',fontSize:14}}>{ga4?.status==='not-configured'?'GA4:n lukuoikeutta ei ole vielä määritetty tähän esikatseluympäristöön. Search Console -tiedot ovat käytettävissä.':'GA4-tietoja ei saatu haettua. Search Console -tiedot näkyvät silti normaalisti.'}</p>
  </section>
  const sum=(rows:NonNullable<Ga4Report['daily']>,key:'sessions'|'activeUsers'|'keyEvents')=>rows.reduce((total,day)=>total+day[key],0)
- const total=(key:'sessions'|'activeUsers'|'keyEvents')=>sum(ga4.daily!,key).toLocaleString('fi-FI')
+ const total=(key:'sessions'|'activeUsers'|'keyEvents')=>(ga4.totals?.[key]??sum(ga4.daily!,key)).toLocaleString('fi-FI')
  const comparison=(key:'sessions'|'activeUsers'|'keyEvents')=>{
   if(ga4.daily!.length!==28||ga4.previousDaily?.length!==28)return 'Vertailu ei saatavilla'
-  const previous=sum(ga4.previousDaily,key),current=sum(ga4.daily!,key)
+  const previous=ga4.previousTotals?.[key]??sum(ga4.previousDaily,key),current=ga4.totals?.[key]??sum(ga4.daily!,key)
   return previous===0?'Ei vertailupohjaa':(current>=previous?'+':'')+((current-previous)/previous*100).toLocaleString('fi-FI',{maximumFractionDigits:1})+' %'
  }
  return <section aria-label="GA4 orgaaninen liikenne" style={{borderTop:'1px solid #d9e6ef',paddingTop:18,marginTop:20}}>
