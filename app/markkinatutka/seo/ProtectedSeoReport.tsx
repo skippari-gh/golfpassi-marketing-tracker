@@ -1,6 +1,7 @@
 'use client'
 
 import InsightCard from '../InsightCard'
+import { suggestSeoCopy } from '../../../lib/seo-copy-suggestions'
 
 import { useEffect, useState } from 'react'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -96,9 +97,24 @@ export default function ProtectedSeoReport() {
           caveat: 'Search Console näyttää hakutulosten havaintoja, ei suoraan matkavarausten tai sisältömuutosten vaikutusta.',
           source: 'Google Search Console: ' + report.property + ' · ' + report.startDate + '–' + report.endDate,
           confidence: 'Sääntöpohjainen tarkistusehdotus, ei vahvistettu syy-yhteys',
-          details: <><p>Sivu: {item.page}</p><p>Klikkaukset: {nf.format(item.clicks)} · Näyttökerrat: {nf.format(item.impressions)} · Klikkausosuus (CTR): {(item.ctr*100).toFixed(1)} % · Keskimääräinen sijoitus: {item.position.toFixed(1)}</p><p>CTR tarkoittaa, kuinka moni näyttökerta johti klikkaukseen.</p></>,
+          details: <><SeoCopyDraft item={item} /><p>Sivu: {item.page}</p><p>Klikkaukset: {nf.format(item.clicks)} · Näyttökerrat: {nf.format(item.impressions)} · Klikkausosuus (CTR): {(item.ctr*100).toFixed(1)} % · Keskimääräinen sijoitus: {item.position.toFixed(1)}</p><p>CTR tarkoittaa, kuinka moni näyttökerta johti klikkaukseen.</p></>,
         }} />)}
       </div>
     </div>}
+  </section>
+}
+
+function SeoCopyDraft({item}:{item:Opportunity}) {
+  const draft=suggestSeoCopy(item)
+  return <section style={{background:'#f0f7fb',padding:16,borderRadius:12,margin:'12px 0'}}>
+    <h4>Automaattinen tekstiehdotus – vaatii sivun tarkistamisen</h4>
+    <p><strong>Hakujen kohdennus:</strong> {draft.relatedQueries.join(', ')}</p>
+    <p><strong>Google-otsikko:</strong> {draft.title}</p>
+    <p><strong>Metakuvaus:</strong> {draft.description}</p>
+    <p><strong>Sivun pääotsikko:</strong> {draft.heading}</p>
+    <p><strong>Ingressi:</strong> {draft.intro}</p>
+    <p><strong>Perustelu:</strong> {draft.explanation}</p>
+    <strong>Ennen hyväksyntää:</strong>
+    <ul>{draft.verification.map(v=><li key={v}>{v}</li>)}</ul>
   </section>
 }
