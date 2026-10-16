@@ -18,6 +18,12 @@ export default function MarketIntelligencePreview() {
       <Link href="/" style={{ fontSize:14, color:C.navy, textDecoration:'none', fontWeight:700 }}>← Marketing Tracker</Link>
       <span style={{ border:'1px solid '+C.border, padding:'8px 13px', borderRadius:99, fontSize:12, fontWeight:700, color:C.navy }}>GOLFPASSI / MARKKINOINTI</span>
     </header>
+    <nav aria-label="Markkinatutkan päävalikko" style={{ display:'flex', alignItems:'center', flexWrap:'wrap', gap:'4px 18px', borderBottom:'1px solid '+C.border, padding:'9px 0', marginBottom:19 }}>
+      <Link href="/markkinatutka" aria-current="page" style={{ color:C.navy, fontWeight:700, textDecoration:'none', padding:'7px 3px', borderBottom:'2px solid '+C.orange }}>Yhteenveto</Link>
+      <Link href="/markkinatutka/seo" style={{ color:C.navy, fontWeight:600, textDecoration:'none', padding:'7px 3px' }}>SEO-mahdollisuudet</Link>
+      <Link href="/markkinatutka/muutokset" style={{ color:C.navy, fontWeight:600, textDecoration:'none', padding:'7px 3px' }}>Muutosten hyväksyntä</Link>
+      <Link href="/markkinatutka/kilpailijat" style={{ color:C.navy, fontWeight:600, textDecoration:'none', padding:'7px 3px' }}>Kilpailijaseuranta</Link>
+    </nav>
     <section style={{ background:'linear-gradient(115deg,#003c70,#08659b)', color:'white', borderRadius:22, padding:'clamp(24px,4vw,44px)', overflow:'hidden', position:'relative' }}>
       <div style={{ width:50, height:5, borderRadius:3, background:C.orange, marginBottom:18 }} />
       <p style={{ fontSize:12, letterSpacing:2, textTransform:'uppercase', opacity:.85, margin:'0 0 10px' }}>MARKKINATUTKA · TYÖPÖYTÄ</p>
@@ -27,15 +33,6 @@ export default function MarketIntelligencePreview() {
     <aside role="status" style={{ margin:'18px 0 26px', background:'#fff7e9', border:'1px solid #efc586', borderRadius:12, padding:'14px 18px', lineHeight:1.5, fontSize:14 }}>
       <strong>Esikatselu – esimerkkitietoja.</strong> Alla olevat tehtävät ja luvut eivät perustu Golfpassin todelliseen analytiikkaan. Automaattista tehtävien tallennusta, julkaisua tai kilpailijatietojen keruuta ei ole kytketty päälle.
     </aside>
-    <nav aria-label="Markkinatutkan työkalut" style={{ margin:'0 0 22px' }}>
-        <section style={{ background:C.bg, border:'1px solid '+C.border, borderRadius:18, padding:24 }}>
-          <h2 style={{ color:C.navy, fontSize:21, margin:'0 0 10px' }}>Havainnot ja työkalut</h2>
-          <p style={{ fontSize:14, lineHeight:1.55, color:C.muted }}>Siirry nopeasti analyysiin, muutosehdotuksiin tai kilpailijaseurantaan.</p>
-          <Link href="/markkinatutka/seo" style={{ display:'block', color:C.navy, padding:'14px 0', borderBottom:'1px solid '+C.border, fontWeight:700 }}>↗ SEO-mahdollisuudet <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Hakukyselyt</span></Link>
-          <Link href="/markkinatutka/muutokset" style={{ display:'block', color:C.navy, padding:'14px 0', borderBottom:'1px solid '+C.border, fontWeight:700 }}>↗ Muutosten hyväksyntä <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Esikatselu</span></Link>
-          <Link href="/markkinatutka/kilpailijat" style={{ display:'block', color:C.navy, padding:'14px 0', fontWeight:700 }}>↗ Kilpailijaseuranta <span style={{ float:'right',fontSize:12,fontWeight:400 }}>Tarjonta</span></Link>
-        </section>
-    </nav>
     <MarkkinatutkaViewSwitch professional={<>
     <section aria-label="Tilannekuva" style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:14 }}>
       {metrics.map(m=><article key={m.label} style={{ background:C.bg, border:'1px solid '+C.border, borderRadius:16, padding:22 }}>
