@@ -27,7 +27,7 @@ export default function SeoPreview() {
     <p>Hakukyselyiden mitatut klikkaukset, näyttökerrat, CTR ja keskimääräinen sijoitus tuottavat tarkistettavia toimenpide-ehdotuksia.</p>
     <div role="status" style={{ border: '1px solid #d79b35', padding: 16, borderRadius: 12, background: '#fff4df', margin: '22px 0' }}>
       <strong>ESIMERKKIDATA – EI OIKEITA GOLFPASSIN HAKUTULOKSIA.</strong>
-      <p style={{ marginBottom: 0 }}>Search Console -tietojen käyttö odottaa palvelinpuolen tunnistautumista ja yhteyden testausta. Sivulla ei tehdä Search Console -API-kutsuja.</p>
+      <p style={{ marginBottom: 0 }}>Kirjautuminen toimii testiympäristössä, mutta Search Console -palvelutilin tunnukset puuttuvat vielä tästä ympäristöstä. Alla oleva Oikea Search Console -data -osio hakee tietoja vain kirjautuneelle käyttäjälle, kun yhteys on määritelty.</p>
     </div>
     <div id="oikea-data"><ProtectedSeoReport /></div>
     <p style={{fontSize:13,color:"#637b8f"}}>Alla olevat sisältöehdotukset ja hakusana-analyysit ovat malliesimerkkejä, eivät oikeaa Search Console -dataa.</p>
